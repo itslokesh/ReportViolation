@@ -57,6 +57,8 @@ import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.CameraPosition
 import java.time.LocalDateTime
+import com.example.reportviolation.ui.screens.maps.MapsActivity
+import android.content.Intent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,20 +180,27 @@ fun ReportViolationScreen(navController: NavController) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                                                 Column {
-                             Text(
-                                 text = if (currentLocation != null) "Location detected" else "Getting location...",
-                                 style = MaterialTheme.typography.bodySmall,
-                                 color = MaterialTheme.colorScheme.primary
-                             )
-                             if (locationAddress != null) {
-                                 Text(
-                                     text = locationAddress!!,
-                                     style = MaterialTheme.typography.bodySmall,
-                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                 )
-                             }
-                         }
+                                                                          Column {
+                              Text(
+                                  text = if (currentLocation != null) "Location detected" else "Getting location...",
+                                  style = MaterialTheme.typography.bodySmall,
+                                  color = MaterialTheme.colorScheme.primary
+                              )
+                              if (locationAddress != null) {
+                                  // Split address by commas and display in multiple lines
+                                  val addressParts = locationAddress!!.split(",").map { it.trim() }
+                                                                     addressParts.forEachIndexed { _, part ->
+                                      if (part.isNotBlank()) {
+                                          Text(
+                                              text = part,
+                                              style = MaterialTheme.typography.bodySmall,
+                                              color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                              maxLines = 1
+                                          )
+                                      }
+                                  }
+                              }
+                          }
                     }
                     
                     // Refresh location button
@@ -266,12 +275,13 @@ fun ReportViolationScreen(navController: NavController) {
 
                     // Location Map Section (Below violation types)
                     if (currentLocation != null) {
-                        LocationMapSection(
-                            location = currentLocation!!,
-                            onLocationChanged = { newLocation ->
-                                currentLocation = newLocation
-                            }
-                        )
+                                                 LocationMapSection(
+                             location = currentLocation!!,
+                             address = locationAddress,
+                             onLocationChanged = { newLocation ->
+                                 currentLocation = newLocation
+                             }
+                         )
                         
                         Spacer(modifier = Modifier.height(24.dp))
                     } else {
@@ -308,13 +318,14 @@ fun ReportViolationScreen(navController: NavController) {
                         onClick = { 
                             // Submit report with all details
                             coroutineScope.launch {
-                                submitReport(
-                                    mediaUri = selectedMediaUri!!,
-                                    violationTypes = selectedViolationTypes,
-                                    location = currentLocation!!,
-                                    navController = navController,
-                                    context = context
-                                )
+                                                                 submitReport(
+                                     mediaUri = selectedMediaUri!!,
+                                     violationTypes = selectedViolationTypes,
+                                     location = currentLocation!!,
+                                     address = locationAddress,
+                                     navController = navController,
+                                     context = context
+                                 )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -718,25 +729,35 @@ fun ViolationTypeDialog(
 @Composable
 fun LocationMapSection(
     location: LatLng,
+    address: String?,
     onLocationChanged: (LatLng) -> Unit
 ) {
+    val context = LocalContext.current
+
+    fun openFullMap() {
+        val intent = Intent(context, MapsActivity::class.java).apply {
+            putExtra("latitude", location.latitude)
+            putExtra("longitude", location.longitude)
+        }
+        context.startActivity(intent)
+    }
     Column {
         Text(
             text = "Violation Location",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = "Drag the pin to set the exact violation location",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -751,28 +772,145 @@ fun LocationMapSection(
                     initialLocation = location,
                     onLocationChanged = onLocationChanged
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Location coordinates display
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    Text(
-                        text = "Lat: ${location.latitude.format(6)}, Lng: ${location.longitude.format(6)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Column {
+                            Text(
+                                text = "Lat: ${location.latitude.format(6)}, Lng: ${
+                                    location.longitude.format(
+                                        6
+                                    )
+                                }",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            if (address != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "📍 $address",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 2
+                                )
+                            }
+                        }
+
+                        // Full Map Button
+                        Button(
+                            onClick = { openFullMap() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Full Map")
+                        }
+                    }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun GoogleMapWithPin(
+        initialLocation: LatLng,
+        onLocationChanged: (LatLng) -> Unit
+    ) {
+        var currentLocation by remember { mutableStateOf(initialLocation) }
+        var mapView by remember { mutableStateOf<MapView?>(null) }
+        var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(12.dp)
+                )
+        ) {
+            AndroidView(
+                factory = { context ->
+                    MapView(context).apply {
+                        onCreate(null)
+                        mapView = this
+                    }
+                },
+                update = { mapView ->
+                    mapView.getMapAsync { googleMap ->
+                        // Set map properties
+                        googleMap.uiSettings.apply {
+                            isZoomControlsEnabled = true
+                            isMyLocationButtonEnabled = false
+                            isCompassEnabled = true
+                        }
+
+                        // Add marker at current location
+                        val markerOptions = MarkerOptions()
+                            .position(currentLocation)
+                            .title("Violation Location")
+                            .snippet("Drag to adjust location")
+
+                        marker = googleMap.addMarker(markerOptions)
+
+                        // Move camera to location
+                        val cameraPosition = CameraPosition.Builder()
+                            .target(currentLocation)
+                            .zoom(15f)
+                            .build()
+                        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+
+                        // Handle marker drag
+                        googleMap.setOnMarkerDragListener(object :
+                            com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
+                            override fun onMarkerDragStart(marker: com.google.android.gms.maps.model.Marker) {}
+
+                            override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) {}
+
+                            override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
+                                val newLocation = marker.position
+                                currentLocation = newLocation
+                                onLocationChanged(newLocation)
+                            }
+                        })
+
+                        // Make marker draggable
+                        marker?.isDraggable = true
+                    }
+                }
+            )
+        }
+
+        // Cleanup
+        DisposableEffect(Unit) {
+            onDispose {
+                mapView?.onDestroy()
             }
         }
     }
@@ -786,7 +924,7 @@ fun GoogleMapWithPin(
     var currentLocation by remember { mutableStateOf(initialLocation) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -813,42 +951,43 @@ fun GoogleMapWithPin(
                         isMyLocationButtonEnabled = false
                         isCompassEnabled = true
                     }
-                    
+
                     // Add marker at current location
                     val markerOptions = MarkerOptions()
                         .position(currentLocation)
                         .title("Violation Location")
                         .snippet("Drag to adjust location")
-                    
+
                     marker = googleMap.addMarker(markerOptions)
-                    
+
                     // Move camera to location
                     val cameraPosition = CameraPosition.Builder()
                         .target(currentLocation)
                         .zoom(15f)
                         .build()
                     googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-                    
+
                     // Handle marker drag
-                    googleMap.setOnMarkerDragListener(object : com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
+                    googleMap.setOnMarkerDragListener(object :
+                        com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
                         override fun onMarkerDragStart(marker: com.google.android.gms.maps.model.Marker) {}
-                        
+
                         override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) {}
-                        
+
                         override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
                             val newLocation = marker.position
                             currentLocation = newLocation
                             onLocationChanged(newLocation)
                         }
                     })
-                    
+
                     // Make marker draggable
                     marker?.isDraggable = true
                 }
             }
         )
     }
-    
+
     // Cleanup
     DisposableEffect(Unit) {
         onDispose {
@@ -863,12 +1002,13 @@ private suspend fun submitReport(
     mediaUri: String,
     violationTypes: Set<ViolationType>,
     location: LatLng,
+    address: String?,
     navController: NavController,
     context: android.content.Context
 ) {
     // Create violation report with the first violation type (since the model supports only one)
     val primaryViolationType = violationTypes.firstOrNull() ?: ViolationType.OTHERS
-    
+
     val report = ViolationReport(
         id = 0, // Room will auto-generate
         reporterId = "current_user", // TODO: Get from auth
@@ -881,7 +1021,7 @@ private suspend fun submitReport(
         timestamp = LocalDateTime.now(),
         latitude = location.latitude,
         longitude = location.longitude,
-        address = "Location: ${location.latitude.format(6)}, ${location.longitude.format(6)}",
+        address = address ?: "Location: ${location.latitude.format(6)}, ${location.longitude.format(6)}",
         pincode = "400001", // TODO: Get from location
         city = "Mumbai", // TODO: Get from location
         district = "Mumbai", // TODO: Get from location
@@ -893,7 +1033,7 @@ private suspend fun submitReport(
         videoUri = if (mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov")) mediaUri else null,
         mediaMetadata = "Multiple violations: ${violationTypes.joinToString(", ") { it.displayName }}"
     )
-    
+
     // Save to database using repository
     val database = AppDatabase.getDatabase(context)
     val duplicateDetectionService = DuplicateDetectionService()
@@ -903,7 +1043,7 @@ private suspend fun submitReport(
         duplicateDetectionService,
         jurisdictionService
     )
-    
+
     // Save the report to database
     try {
         repository.createReport(report)
@@ -911,7 +1051,7 @@ private suspend fun submitReport(
     } catch (e: Exception) {
         println("Failed to save report: ${e.message}")
     }
-    
+
     // Navigate to reports page to show submissions
     navController.navigate(Screen.ReportsHistory.route) {
         popUpTo(Screen.Dashboard.route) { inclusive = false }
@@ -920,9 +1060,13 @@ private suspend fun submitReport(
 
 private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
-private fun getCurrentLocation(context: android.content.Context, onLocationReceived: (LatLng?) -> Unit) {
-    val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-    
+private fun getCurrentLocation(
+    context: android.content.Context,
+    onLocationReceived: (LatLng?) -> Unit
+) {
+    val fusedLocationClient: FusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(context)
+
     try {
         if (androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
@@ -932,7 +1076,9 @@ private fun getCurrentLocation(context: android.content.Context, onLocationRecei
             fusedLocationClient.getCurrentLocation(
                 Priority.PRIORITY_HIGH_ACCURACY,
                 object : CancellationToken() {
-                    override fun onCanceledRequested(listener: OnTokenCanceledListener) = CancellationTokenSource().token
+                    override fun onCanceledRequested(listener: OnTokenCanceledListener) =
+                        CancellationTokenSource().token
+
                     override fun isCancellationRequested() = false
                 }
             ).addOnSuccessListener { location ->
@@ -959,17 +1105,56 @@ private fun getCurrentLocation(context: android.content.Context, onLocationRecei
     }
 }
 
-private fun getAddressFromLocation(context: android.content.Context, location: LatLng, onAddressReceived: (String?) -> Unit) {
+private fun getAddressFromLocation(
+    context: android.content.Context,
+    location: LatLng,
+    onAddressReceived: (String?) -> Unit
+) {
     try {
         val geocoder = Geocoder(context)
         // Use the synchronous version for API level 26 compatibility
         val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
         if (addresses != null && addresses.isNotEmpty()) {
             val address = addresses[0]
-            val locality = address.locality ?: address.subLocality ?: "Unknown Area"
-            val city = address.adminArea ?: "Unknown City"
-            val addressText = "$locality, $city"
-            println("Address obtained: $addressText")
+
+            // Build detailed address with multiple components
+            val addressParts = mutableListOf<String>()
+
+            // Add sub-locality (neighborhood/area) if available
+            address.subLocality?.let {
+                if (it.isNotBlank()) addressParts.add(it)
+            }
+
+            // Add thoroughfare (street name) if available
+            address.thoroughfare?.let {
+                if (it.isNotBlank()) addressParts.add(it)
+            }
+
+            // Add sub-thoroughfare (landmark/building) if available
+            address.subThoroughfare?.let {
+                if (it.isNotBlank()) addressParts.add(it)
+            }
+
+            // Add locality (city district) if available
+            address.locality?.let {
+                if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
+            }
+
+            // Add admin area (city) if available
+            address.adminArea?.let {
+                if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
+            }
+
+            // If we have detailed parts, use them; otherwise fallback to basic locality
+            val addressText = if (addressParts.isNotEmpty()) {
+                addressParts.joinToString(", ")
+            } else {
+                val locality = address.locality ?: address.subLocality ?: "Unknown Area"
+                val city = address.adminArea ?: "Unknown City"
+                "$locality, $city"
+            }
+
+            println("Detailed address obtained: $addressText")
             onAddressReceived(addressText)
         } else {
             println("No address found for location")

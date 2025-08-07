@@ -61,6 +61,8 @@ android {
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     
@@ -101,6 +103,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.kotlinx.coroutines.core)
     
     // Navigation
     implementation(libs.androidx.navigation.compose)

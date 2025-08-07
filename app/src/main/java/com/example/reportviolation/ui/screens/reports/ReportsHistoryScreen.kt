@@ -208,10 +208,6 @@ fun ReportCard(report: ViolationReport) {
                         .fillMaxWidth()
                         .height(150.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(8.dp)
-                        )
                         .border(
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.outline,
@@ -219,21 +215,75 @@ fun ReportCard(report: ViolationReport) {
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Media Evidence",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    when {
+                        report.photoUri != null -> {
+                            // Display photo
+                            println("Loading photo URI: ${report.photoUri}")
+                            var imageLoadError by remember { mutableStateOf(false) }
+                            
+                            if (imageLoadError) {
+                                // Fallback when image fails to load
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Image,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(32.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Photo Evidence",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            } else {
+                                Image(
+                                    painter = rememberAsyncImagePainter(
+                                        model = report.photoUri,
+                                        onError = { error ->
+                                            println("Error loading image: $error")
+                                            imageLoadError = true
+                                        },
+                                        onSuccess = { success ->
+                                            println("Image loaded successfully: $success")
+                                        }
+                                    ),
+                                    contentDescription = "Violation photo evidence",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                        report.videoUri != null -> {
+                            // Display video thumbnail with play button
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Video thumbnail (you might want to generate thumbnails for videos)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.3f))
+                                )
+                                
+                                // Play button overlay
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Play video",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
                     }
                 }
                 

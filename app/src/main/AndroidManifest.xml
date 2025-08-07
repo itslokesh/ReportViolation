@@ -48,7 +48,7 @@
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg" />
+            android:value="AIzaSyBUvtIMK9qqAQhnAuXEI9vEBfwkEweladI" />
         
         <!-- Default notification channel -->
         <meta-data
@@ -67,9 +67,26 @@
             </intent-filter>
         </activity>
         
+        <activity
+            android:name=".ui.screens.maps.MapsActivity"
+            android:exported="false"
+            android:label="Map View"
+            android:theme="@style/Theme.ReportViolation" />
+        
 
         
 
+        
+        <!-- File Provider for sharing files -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         
         <!-- Work Manager Provider -->
         <provider

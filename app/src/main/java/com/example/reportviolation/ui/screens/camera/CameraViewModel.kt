@@ -10,6 +10,7 @@ import androidx.camera.video.*
 import androidx.camera.core.CameraInfo
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -133,7 +134,11 @@ class CameraViewModel : ViewModel() {
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val savedUri = outputFileResults.savedUri ?: Uri.fromFile(photoFile)
+                    val savedUri = outputFileResults.savedUri ?: FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        photoFile
+                    )
                     _uiState.value = _uiState.value.copy(
                         lastCapturedPhoto = savedUri,
                         isPhotoCaptured = true
@@ -201,7 +206,11 @@ class CameraViewModel : ViewModel() {
                                 )
                             } else {
                                 Log.d("CameraViewModel", "Video recording completed successfully")
-                                val savedUri = Uri.fromFile(videoFile)
+                                val savedUri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    videoFile
+                                )
                                 _uiState.value = _uiState.value.copy(
                                     lastCapturedVideo = savedUri,
                                     isVideoCaptured = true,
