@@ -32,6 +32,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.reportviolation.data.model.ViolationType
 import com.example.reportviolation.ui.navigation.Screen
+import com.google.android.gms.maps.model.LatLng
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +41,8 @@ fun ReportViolationScreen(navController: NavController) {
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
     var selectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
     var showViolationTypeDialog by remember { mutableStateOf(false) }
+    var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
+    var locationAddress by remember { mutableStateOf("") }
 
     val context = LocalContext.current
 
@@ -96,6 +99,17 @@ fun ReportViolationScreen(navController: NavController) {
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Location Selection Section
+            if (hasLocationPermission) {
+                LocationSelectionSection(
+                    selectedLocation = selectedLocation,
+                    locationAddress = locationAddress,
+                    onSelectLocation = { navController.navigate(Screen.Map.route) }
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             // Media Capture Section
             if (hasLocationPermission) {
@@ -483,3 +497,77 @@ fun ViolationTypeDialog(
         }
     )
 }
+
+@Composable
+fun LocationSelectionSection(
+    selectedLocation: LatLng?,
+    locationAddress: String,
+    onSelectLocation: () -> Unit
+) {
+    Column {
+        Text(
+            text = "Violation Location",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(
+            onClick = onSelectLocation,
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    if (selectedLocation != null) {
+                        Text(
+                            text = locationAddress.ifEmpty { "Location selected" },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Lat: ${selectedLocation.latitude.format(6)}, Lng: ${selectedLocation.longitude.format(6)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    } else {
+                        Text(
+                            text = "Select Location on Map",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = "Tap to open map and select violation location",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                
+                Icon(
+                    imageVector = Icons.Default.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+    }
+}
+
+private fun Double.format(digits: Int) = "%.${digits}f".format(this)

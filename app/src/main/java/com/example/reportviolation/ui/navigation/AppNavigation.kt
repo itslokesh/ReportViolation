@@ -8,6 +8,7 @@ import com.example.reportviolation.ui.screens.auth.LoginScreen
 import com.example.reportviolation.ui.screens.auth.RegistrationScreen
 import com.example.reportviolation.ui.screens.camera.CameraScreen
 import com.example.reportviolation.ui.screens.dashboard.DashboardScreen
+import com.example.reportviolation.ui.screens.map.MapScreen
 import com.example.reportviolation.ui.screens.report.ReportViolationScreen
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryScreen
 import com.example.reportviolation.ui.screens.rewards.RewardsScreen
@@ -43,6 +44,10 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
             CameraScreen(navController)
         }
         
+        composable(Screen.Map.route) {
+            MapScreen(navController)
+        }
+        
         composable(Screen.ReportsHistory.route) {
             ReportsHistoryScreen(navController)
         }
@@ -60,6 +65,7 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object ReportViolation : Screen("report_violation")
     object Camera : Screen("camera")
+    object Map : Screen("map")
     object ReportsHistory : Screen("reports_history")
     object Rewards : Screen("rewards")
 } 

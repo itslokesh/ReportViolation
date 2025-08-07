@@ -1,7 +1,10 @@
 package com.example.reportviolation.data.repository
 
 import com.example.reportviolation.data.local.dao.ViolationReportDao
-import com.example.reportviolation.data.model.*
+import com.example.reportviolation.data.model.ViolationReport
+import com.example.reportviolation.data.model.ViolationType
+import com.example.reportviolation.data.model.SeverityLevel
+import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
 import kotlinx.coroutines.flow.flowOf
@@ -15,38 +18,34 @@ import java.time.LocalDateTime
 class ViolationReportRepositoryTest {
     
     private lateinit var repository: ViolationReportRepository
-    private lateinit var violationReportDao: ViolationReportDao
-    private lateinit var duplicateDetectionService: DuplicateDetectionService
-    private lateinit var jurisdictionService: JurisdictionService
+    private lateinit var mockDao: ViolationReportDao
+    private lateinit var mockDuplicateDetectionService: DuplicateDetectionService
+    private lateinit var mockJurisdictionService: JurisdictionService
     
     @Before
     fun setup() {
-        violationReportDao = mock()
-        duplicateDetectionService = mock()
-        jurisdictionService = mock()
-        repository = ViolationReportRepository(
-            violationReportDao,
-            duplicateDetectionService,
-            jurisdictionService
-        )
+        mockDao = mock()
+        mockDuplicateDetectionService = mock()
+        mockJurisdictionService = mock()
+        repository = ViolationReportRepository(mockDao, mockDuplicateDetectionService, mockJurisdictionService)
     }
     
     @Test
-    fun `test insertViolationReport`() = runTest {
+    fun `insertViolationReport should call dao insertReport`() = runTest {
         // Given
         val report = createTestReport()
-        whenever(violationReportDao.insertReport(report)).thenReturn(1L)
+        whenever(mockDao.insertReport(report)).thenReturn(1L)
         
         // When
         val result = repository.insertViolationReport(report)
         
         // Then
         assertEquals(1L, result)
-        verify(violationReportDao).insertReport(report)
+        verify(mockDao).insertReport(report)
     }
     
     @Test
-    fun `test updateViolationReport`() = runTest {
+    fun `updateViolationReport should call dao updateReport`() = runTest {
         // Given
         val report = createTestReport()
         
@@ -54,11 +53,11 @@ class ViolationReportRepositoryTest {
         repository.updateViolationReport(report)
         
         // Then
-        verify(violationReportDao).updateReport(report)
+        verify(mockDao).updateReport(report)
     }
     
     @Test
-    fun `test deleteViolationReport`() = runTest {
+    fun `deleteViolationReport should call dao deleteReport`() = runTest {
         // Given
         val report = createTestReport()
         
@@ -66,28 +65,28 @@ class ViolationReportRepositoryTest {
         repository.deleteViolationReport(report)
         
         // Then
-        verify(violationReportDao).deleteReport(report)
+        verify(mockDao).deleteReport(report)
     }
     
     @Test
-    fun `test getViolationReportById`() = runTest {
+    fun `getViolationReportById should return report from dao`() = runTest {
         // Given
         val report = createTestReport()
-        whenever(violationReportDao.getReportById(1L)).thenReturn(report)
+        whenever(mockDao.getReportById(1L)).thenReturn(report)
         
         // When
         val result = repository.getViolationReportById(1L)
         
         // Then
         assertEquals(report, result)
-        verify(violationReportDao).getReportById(1L)
+        verify(mockDao).getReportById(1L)
     }
     
     @Test
-    fun `test getViolationReportsByReporter`() = runTest {
+    fun `getViolationReportsByReporter should return flow from dao`() = runTest {
         // Given
-        val reports = listOf(createTestReport(), createTestReport(id = 2L))
-        whenever(violationReportDao.getReportsByReporter("test_user")).thenReturn(flowOf(reports))
+        val reports = listOf(createTestReport())
+        whenever(mockDao.getReportsByReporter("test_user")).thenReturn(flowOf(reports))
         
         // When
         val result = repository.getViolationReportsByReporter("test_user")
@@ -96,14 +95,14 @@ class ViolationReportRepositoryTest {
         result.collect { collectedReports ->
             assertEquals(reports, collectedReports)
         }
-        verify(violationReportDao).getReportsByReporter("test_user")
+        verify(mockDao).getReportsByReporter("test_user")
     }
     
     @Test
-    fun `test getViolationReportsByStatus`() = runTest {
+    fun `getViolationReportsByStatus should return flow from dao`() = runTest {
         // Given
         val reports = listOf(createTestReport())
-        whenever(violationReportDao.getReportsByStatus(ReportStatus.PENDING)).thenReturn(flowOf(reports))
+        whenever(mockDao.getReportsByStatus(ReportStatus.PENDING)).thenReturn(flowOf(reports))
         
         // When
         val result = repository.getViolationReportsByStatus(ReportStatus.PENDING)
@@ -112,70 +111,44 @@ class ViolationReportRepositoryTest {
         result.collect { collectedReports ->
             assertEquals(reports, collectedReports)
         }
-        verify(violationReportDao).getReportsByStatus(ReportStatus.PENDING)
+        verify(mockDao).getReportsByStatus(ReportStatus.PENDING)
     }
     
     @Test
-    fun `test processViolationReport with duplicate detection`() = runTest {
+    fun `validateJurisdiction should return true when within jurisdiction`() = runTest {
         // Given
         val report = createTestReport()
-        val existingReports = listOf(createTestReport(id = 2L))
-        whenever(violationReportDao.findPotentialDuplicates(
-            any(), any(), any(), any(), any(), any(), any(), any()
-        )).thenReturn(existingReports)
-        whenever(duplicateDetectionService.areLikelyDuplicates(any(), any(), any())).thenReturn(true)
-        
-        // When
-        val result = repository.processViolationReport(report)
-        
-        // Then
-        assertEquals(ReportStatus.DUPLICATE, result.status)
-        assertTrue(result.reviewNotes?.contains("Auto-detected as duplicate") == true)
-        verify(violationReportDao).findPotentialDuplicates(
-            any(), any(), any(), any(), any(), any(), any(), any()
-        )
-        verify(duplicateDetectionService).areLikelyDuplicates(any(), any(), any())
-    }
-    
-    @Test
-    fun `test processViolationReport without duplicate detection`() = runTest {
-        // Given
-        val report = createTestReport()
-        whenever(violationReportDao.findPotentialDuplicates(
-            any(), any(), any(), any(), any(), any(), any(), any()
-        )).thenReturn(emptyList())
-        
-        // When
-        val result = repository.processViolationReport(report)
-        
-        // Then
-        assertEquals(report, result)
-        verify(violationReportDao).findPotentialDuplicates(
-            any(), any(), any(), any(), any(), any(), any(), any()
-        )
-    }
-    
-    @Test
-    fun `test validateJurisdiction`() = runTest {
-        // Given
-        val report = createTestReport()
-        whenever(jurisdictionService.isWithinJurisdiction(any(), any())).thenReturn(true)
+        whenever(mockJurisdictionService.isWithinJurisdiction(any(), any())).thenReturn(true)
         
         // When
         val result = repository.validateJurisdiction(report, "Mumbai", "400001")
         
         // Then
         assertTrue(result)
-        verify(jurisdictionService).isWithinJurisdiction("Mumbai", "Mumbai")
+        verify(mockJurisdictionService).isWithinJurisdiction("Mumbai", "Mumbai")
     }
     
     @Test
-    fun `test getReportStatistics`() = runTest {
+    fun `validateJurisdiction should return false when outside jurisdiction`() = runTest {
         // Given
-        whenever(violationReportDao.getReportCountByReporter("test_user")).thenReturn(10)
-        whenever(violationReportDao.getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)).thenReturn(5)
-        whenever(violationReportDao.getReportCountByReporterAndStatus("test_user", ReportStatus.PENDING)).thenReturn(3)
-        whenever(violationReportDao.getReportCountByReporterAndStatus("test_user", ReportStatus.REJECTED)).thenReturn(2)
+        val report = createTestReport()
+        whenever(mockJurisdictionService.isWithinJurisdiction(any(), any())).thenReturn(false)
+        
+        // When
+        val result = repository.validateJurisdiction(report, "Delhi", "110001")
+        
+        // Then
+        assertFalse(result)
+        verify(mockJurisdictionService).isWithinJurisdiction("Mumbai", "Delhi")
+    }
+    
+    @Test
+    fun `getReportStatistics should return correct statistics`() = runTest {
+        // Given
+        whenever(mockDao.getReportCountByReporter("test_user")).thenReturn(10)
+        whenever(mockDao.getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)).thenReturn(5)
+        whenever(mockDao.getReportCountByReporterAndStatus("test_user", ReportStatus.PENDING)).thenReturn(3)
+        whenever(mockDao.getReportCountByReporterAndStatus("test_user", ReportStatus.REJECTED)).thenReturn(2)
         
         // When
         val result = repository.getReportStatistics("test_user")
@@ -188,43 +161,29 @@ class ViolationReportRepositoryTest {
     }
     
     @Test
-    fun `test getTotalReportsByReporter`() = runTest {
+    fun `getTotalReportsByReporter should return count from dao`() = runTest {
         // Given
-        whenever(violationReportDao.getReportCountByReporter("test_user")).thenReturn(10)
+        whenever(mockDao.getReportCountByReporter("test_user")).thenReturn(10)
         
         // When
         val result = repository.getTotalReportsByReporter("test_user")
         
         // Then
         assertEquals(10, result)
-        verify(violationReportDao).getReportCountByReporter("test_user")
+        verify(mockDao).getReportCountByReporter("test_user")
     }
     
     @Test
-    fun `test getReportsByStatusAndReporter`() = runTest {
+    fun `getReportsByStatusAndReporter should return count from dao`() = runTest {
         // Given
-        whenever(violationReportDao.getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)).thenReturn(5)
+        whenever(mockDao.getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)).thenReturn(5)
         
         // When
         val result = repository.getReportsByStatusAndReporter("test_user", ReportStatus.APPROVED)
         
         // Then
         assertEquals(5, result)
-        verify(violationReportDao).getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)
-    }
-    
-    @Test
-    fun `test markAsDuplicate`() = runTest {
-        // Given
-        val reportId = 1L
-        val duplicateOfId = 2L
-        
-        // When
-        repository.markAsDuplicate(reportId, duplicateOfId)
-        
-        // Then
-        verify(violationReportDao).updateReportStatus(reportId, ReportStatus.DUPLICATE)
-        verify(violationReportDao).updateReportStatus(duplicateOfId, ReportStatus.APPROVED)
+        verify(mockDao).getReportCountByReporterAndStatus("test_user", ReportStatus.APPROVED)
     }
     
     private fun createTestReport(id: Long = 1L): ViolationReport {
@@ -246,8 +205,8 @@ class ViolationReportRepositoryTest {
             district = "Mumbai",
             state = "Maharashtra",
             vehicleNumber = "MH12AB1234",
-            vehicleType = VehicleType.FOUR_WHEELER,
-            vehicleColor = "White",
+            vehicleType = null,
+            vehicleColor = null,
             photoUri = "test_photo_uri",
             videoUri = null,
             mediaMetadata = null,

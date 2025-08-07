@@ -6,6 +6,7 @@ import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 class ViolationReportRepository(
     private val violationReportDao: ViolationReportDao,
@@ -104,7 +105,7 @@ class ViolationReportRepository(
     
     // Duplicate management
     suspend fun markAsDuplicate(reportId: Long, duplicateOfId: Long) {
-        violationReportDao.updateReportStatus(reportId, ReportStatus.DUPLICATE)
-        violationReportDao.updateReportStatus(duplicateOfId, ReportStatus.APPROVED)
+        violationReportDao.updateReportStatus(reportId, ReportStatus.DUPLICATE, LocalDateTime.now())
+        violationReportDao.updateReportStatus(duplicateOfId, ReportStatus.APPROVED, LocalDateTime.now())
     }
 } 
