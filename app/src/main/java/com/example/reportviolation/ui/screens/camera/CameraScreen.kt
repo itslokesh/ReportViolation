@@ -422,6 +422,9 @@ fun CameraScreen(
                         onClick = {
                             showPreview = false
                             // Navigate back to Report Violation screen with the captured media
+                            capturedMediaUri?.let { uri ->
+                                navController.previousBackStackEntry?.savedStateHandle?.set("capturedMediaUri", uri)
+                            }
                             navController.navigateUp()
                         }
                     ) {

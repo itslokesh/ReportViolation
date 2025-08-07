@@ -41,8 +41,8 @@ fun ReportViolationScreen(navController: NavController) {
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
     var selectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
     var showViolationTypeDialog by remember { mutableStateOf(false) }
-    var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
-    var locationAddress by remember { mutableStateOf("") }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var isLocationLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -54,11 +54,27 @@ fun ReportViolationScreen(navController: NavController) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    // Listen for captured media from camera screen
+    LaunchedEffect(Unit) {
+        navController.currentBackStackEntry?.savedStateHandle?.getStateFlow<String?>("capturedMediaUri", null)
+            ?.collect { uri ->
+                uri?.let { selectedMediaUri = it }
+            }
+    }
+
     // Location permission launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasLocationPermission = isGranted
+        if (isGranted) {
+            // Automatically get location when permission is granted
+            isLocationLoading = true
+            // TODO: Get current location automatically
+            // For now, simulate location loading
+            currentLocation = LatLng(19.0760, 72.8777) // Mumbai coordinates as placeholder
+            isLocationLoading = false
+        }
     }
 
     // Camera permission launcher
@@ -92,27 +108,39 @@ fun ReportViolationScreen(navController: NavController) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Location Permission Section
-            LocationPermissionSection(
-                hasPermission = hasLocationPermission,
-                onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Location Selection Section
-            if (hasLocationPermission) {
-                LocationSelectionSection(
-                    selectedLocation = selectedLocation,
-                    locationAddress = locationAddress,
-                    onSelectLocation = { navController.navigate(Screen.Map.route) }
+            // Automatic Location Detection (Clean and transparent)
+            if (!hasLocationPermission) {
+                LocationPermissionRequest(
+                    onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
                 )
-                
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Media Capture Section
+            // Media Capture Section (Only show if location permission granted)
             if (hasLocationPermission) {
+                // Subtle location indicator
+                if (currentLocation != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Location detected",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
                 MediaCaptureSection(
                     selectedMediaUri = selectedMediaUri,
                     onPhotoClick = {
@@ -179,66 +207,55 @@ fun ReportViolationScreen(navController: NavController) {
 }
 
 @Composable
-fun LocationPermissionSection(
-    hasPermission: Boolean,
+fun LocationPermissionRequest(
     onRequestPermission: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (hasPermission) 
-                MaterialTheme.colorScheme.tertiaryContainer 
-            else 
-                MaterialTheme.colorScheme.errorContainer
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = if (hasPermission) Icons.Default.LocationOn else Icons.Default.LocationOff,
+                imageVector = Icons.Default.LocationOn,
                 contentDescription = null,
-                tint = if (hasPermission) 
-                    MaterialTheme.colorScheme.onTertiaryContainer 
-                else 
-                    MaterialTheme.colorScheme.onErrorContainer
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
             
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (hasPermission) "Location Access Granted" else "Location Permission Required",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = if (hasPermission) 
-                        MaterialTheme.colorScheme.onTertiaryContainer 
-                    else 
-                        MaterialTheme.colorScheme.onErrorContainer
-                )
-                Text(
-                    text = if (hasPermission) 
-                        "You can now report violations with accurate location data" 
-                    else 
-                        "Location access is required to report violations with GPS coordinates",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (hasPermission) 
-                        MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) 
-                    else 
-                        MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                )
-            }
+            Text(
+                text = "Location Access Required",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center
+            )
             
-            if (!hasPermission) {
-                Button(
-                    onClick = onRequestPermission,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Grant Permission")
-                }
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "We need your location to automatically tag violation reports with GPS coordinates",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Button(
+                onClick = onRequestPermission,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Allow Location Access")
             }
         }
     }
@@ -358,15 +375,12 @@ fun MediaPreviewSection(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Media thumbnail placeholder
+            // Actual media thumbnail
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(12.dp)
-                    )
+                    .clip(RoundedCornerShape(12.dp))
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outline,
@@ -374,21 +388,31 @@ fun MediaPreviewSection(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Media Preview",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Show actual media thumbnail
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        model = mediaUri
+                    ),
+                    contentDescription = "Captured media thumbnail",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                
+                // Play button overlay for videos
+                if (mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov")) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play video",
+                            modifier = Modifier.size(48.dp),
+                            tint = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -498,76 +522,4 @@ fun ViolationTypeDialog(
     )
 }
 
-@Composable
-fun LocationSelectionSection(
-    selectedLocation: LatLng?,
-    locationAddress: String,
-    onSelectLocation: () -> Unit
-) {
-    Column {
-        Text(
-            text = "Violation Location",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Card(
-            onClick = onSelectLocation,
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    if (selectedLocation != null) {
-                        Text(
-                            text = locationAddress.ifEmpty { "Location selected" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Lat: ${selectedLocation.latitude.format(6)}, Lng: ${selectedLocation.longitude.format(6)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    } else {
-                        Text(
-                            text = "Select Location on Map",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            text = "Tap to open map and select violation location",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-                
-                Icon(
-                    imageVector = Icons.Default.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        }
-    }
-}
-
-private fun Double.format(digits: Int) = "%.${digits}f".format(this)
+// LocationSelectionSection removed - location is now automatic and transparent
