@@ -25,8 +25,9 @@ class DashboardViewModel : ViewModel() {
                 // For now, just set loading to false
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    reportCount = 0,
-                    approvedCount = 0,
+                    totalReports = 0,
+                    approvedReports = 0,
+                    pendingReports = 0,
                     totalPoints = 0
                 )
             } catch (e: Exception) {
@@ -45,8 +46,9 @@ class DashboardViewModel : ViewModel() {
 
 data class DashboardUiState(
     val isLoading: Boolean = false,
-    val reportCount: Int = 0,
-    val approvedCount: Int = 0,
+    val totalReports: Int = 0,
+    val approvedReports: Int = 0,
+    val pendingReports: Int = 0,
     val totalPoints: Int = 0,
     val error: String? = null
 ) 

@@ -35,7 +35,7 @@ class DuplicateDetectionServiceTest {
             violationType = ViolationType.SIGNAL_JUMPING
         )
         
-        val confidenceScore = duplicateDetectionService.calculateConfidenceScore(report1, listOf(report2))
+        val confidenceScore = duplicateDetectionService.calculateDuplicateConfidence(report1, report2)
         
         assertTrue("Confidence score should be high for similar reports", confidenceScore > 0.7)
     }
@@ -60,7 +60,7 @@ class DuplicateDetectionServiceTest {
             violationType = ViolationType.SIGNAL_JUMPING
         )
         
-        val confidenceScore = duplicateDetectionService.calculateConfidenceScore(report1, listOf(report2))
+        val confidenceScore = duplicateDetectionService.calculateDuplicateConfidence(report1, report2)
         
         assertTrue("Confidence score should be low for distant reports", confidenceScore < 0.5)
     }
@@ -87,7 +87,7 @@ class DuplicateDetectionServiceTest {
             violationType = ViolationType.SIGNAL_JUMPING
         )
         
-        val confidenceScore = duplicateDetectionService.calculateConfidenceScore(report1, listOf(report2))
+        val confidenceScore = duplicateDetectionService.calculateDuplicateConfidence(report1, report2)
         
         assertTrue("Confidence score should be low for reports with large time gap", confidenceScore < 0.5)
     }
@@ -114,7 +114,7 @@ class DuplicateDetectionServiceTest {
             vehicleNumber = "MH12AB1234" // Same vehicle
         )
         
-        val confidenceScore = duplicateDetectionService.calculateConfidenceScore(report1, listOf(report2))
+        val confidenceScore = duplicateDetectionService.calculateDuplicateConfidence(report1, report2)
         
         assertTrue("Confidence score should be higher for same vehicle", confidenceScore > 0.3)
     }

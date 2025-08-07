@@ -53,16 +53,16 @@ class ViolationReportRepository(
             excludeId = report.id
         )
         
-        val duplicateConfidence = duplicateDetectionService.calculateConfidenceScore(
-            report = report,
-            potentialDuplicates = existingReports
-        )
+        // Check for duplicates by comparing with existing reports
+        val isDuplicate = existingReports.any { existingReport ->
+            duplicateDetectionService.areLikelyDuplicates(report, existingReport, threshold = 0.7)
+        }
         
-        // Mark as duplicate if confidence is high
-        val processedReport = if (duplicateDetectionService.isHighConfidenceDuplicate(duplicateConfidence)) {
+        // Mark as duplicate if found
+        val processedReport = if (isDuplicate) {
             report.copy(
                 status = ReportStatus.DUPLICATE,
-                reviewNotes = "Auto-detected as duplicate with confidence: $duplicateConfidence"
+                reviewNotes = "Auto-detected as duplicate"
             )
         } else {
             report

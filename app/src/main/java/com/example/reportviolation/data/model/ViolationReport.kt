@@ -63,16 +63,16 @@ data class ViolationReport(
     val isAnonymous: Boolean = false
 )
 
-enum class ViolationType {
-    WRONG_SIDE_DRIVING,
-    NO_PARKING_ZONE,
-    SIGNAL_JUMPING,
-    SPEED_VIOLATION,
-    HELMET_SEATBELT_VIOLATION,
-    MOBILE_PHONE_USAGE,
-    LANE_CUTTING,
-    DRUNK_DRIVING_SUSPECTED,
-    OTHERS
+enum class ViolationType(val displayName: String) {
+    WRONG_SIDE_DRIVING("Wrong Side Driving"),
+    NO_PARKING_ZONE("No Parking Zone"),
+    SIGNAL_JUMPING("Signal Jumping"),
+    SPEED_VIOLATION("Speed Violation"),
+    HELMET_SEATBELT_VIOLATION("Helmet/Seatbelt Violation"),
+    MOBILE_PHONE_USAGE("Mobile Phone Usage"),
+    LANE_CUTTING("Lane Cutting"),
+    DRUNK_DRIVING_SUSPECTED("Drunk Driving (Suspected)"),
+    OTHERS("Others")
 }
 
 enum class SeverityLevel {

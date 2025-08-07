@@ -66,19 +66,9 @@
             </intent-filter>
         </activity>
         
-        <!-- Camera Activity -->
-        <activity
-            android:name=".ui.camera.CameraActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.ReportViolation" />
+
         
-        <!-- Location Service -->
-        <service
-            android:name=".service.LocationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
+
         
         <!-- Work Manager Provider -->
         <provider
