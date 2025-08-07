@@ -16,10 +16,12 @@ import com.example.reportviolation.ui.navigation.Screen
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    var phoneNumber by remember { mutableStateOf("") }
-    var otp by remember { mutableStateOf("") }
-    var isOtpSent by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    
+    // TODO: Phone number and OTP functionality commented out for testing phase
+    // var phoneNumber by remember { mutableStateOf("") }
+    // var otp by remember { mutableStateOf("") }
+    // var isOtpSent by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -37,7 +39,7 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Sign in to continue reporting violations",
+            text = "Click Sign In to start testing the app",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -45,6 +47,73 @@ fun LoginScreen(navController: NavController) {
         
         Spacer(modifier = Modifier.height(48.dp))
         
+        // Direct Sign In Button (Simplified for testing)
+        Button(
+            onClick = {
+                isLoading = true
+                // TODO: Phone number and OTP verification commented out for testing
+                // For testing, directly navigate to dashboard
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+                isLoading = false
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Sign In")
+            }
+        }
+        
+        // TODO: Phone number and OTP functionality commented out for testing phase
+        /*
+        // Phone Number Input (Simplified for testing)
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it },
+            label = { Text("Phone Number") },
+            placeholder = { Text("Enter your 10-digit phone number") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = {
+                if (phoneNumber.length == 10) {
+                    isLoading = true
+                    // TODO: OTP verification commented out for testing
+                    // For testing, directly navigate to dashboard
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                    isLoading = false
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = phoneNumber.length == 10 && !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Sign In")
+            }
+        }
+        */
+        
+        // TODO: OTP functionality commented out for testing phase
+        /*
         if (!isOtpSent) {
             // Phone Number Input
             OutlinedTextField(
@@ -134,6 +203,7 @@ fun LoginScreen(navController: NavController) {
                 Text("Change Phone Number")
             }
         }
+        */
         
         Spacer(modifier = Modifier.height(32.dp))
         

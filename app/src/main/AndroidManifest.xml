@@ -22,8 +22,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" />
     
-    <!-- Phone State for OTP -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Phone State for OTP (Commented out for testing phase) -->
+    <!-- <uses-permission android:name="android.permission.READ_PHONE_STATE" /> -->
     
     <!-- Wake Lock for Background Processing -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
