@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -27,31 +28,70 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.reportviolation.data.model.ViolationType
+import com.example.reportviolation.data.model.ViolationReport
+import com.example.reportviolation.data.model.ReportStatus
+import com.example.reportviolation.data.model.SeverityLevel
+import com.example.reportviolation.data.repository.ViolationReportRepository
+import com.example.reportviolation.data.local.AppDatabase
+import com.example.reportviolation.domain.service.DuplicateDetectionService
+import com.example.reportviolation.domain.service.JurisdictionService
 import com.example.reportviolation.ui.navigation.Screen
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.gms.tasks.OnTokenCanceledListener
+import android.location.Geocoder
+import android.location.Address
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.CameraPosition
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportViolationScreen(navController: NavController) {
     var hasLocationPermission by remember { mutableStateOf(false) }
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
-    var selectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
+    var selectedViolationTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
     var showViolationTypeDialog by remember { mutableStateOf(false) }
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     var isLocationLoading by remember { mutableStateOf(false) }
+    var locationAddress by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
-    // Check initial permission status
+    // Check initial permission status and get location if already granted
     LaunchedEffect(Unit) {
         hasLocationPermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
+        
+        // If permission is already granted, get current location
+        if (hasLocationPermission && currentLocation == null) {
+            isLocationLoading = true
+            getCurrentLocation(context) { location ->
+                currentLocation = location
+                if (location != null) {
+                    getAddressFromLocation(context, location) { address ->
+                        locationAddress = address
+                    }
+                }
+                isLocationLoading = false
+            }
+        }
     }
 
     // Listen for captured media from camera screen
@@ -68,12 +108,16 @@ fun ReportViolationScreen(navController: NavController) {
     ) { isGranted ->
         hasLocationPermission = isGranted
         if (isGranted) {
-            // Automatically get location when permission is granted
-            isLocationLoading = true
-            // TODO: Get current location automatically
-            // For now, simulate location loading
-            currentLocation = LatLng(19.0760, 72.8777) // Mumbai coordinates as placeholder
-            isLocationLoading = false
+            // Get real GPS location when permission is granted
+            getCurrentLocation(context) { location ->
+                currentLocation = location
+                if (location != null) {
+                    getAddressFromLocation(context, location) { address ->
+                        locationAddress = address
+                    }
+                }
+                isLocationLoading = false
+            }
         }
     }
 
@@ -118,11 +162,13 @@ fun ReportViolationScreen(navController: NavController) {
 
             // Media Capture Section (Only show if location permission granted)
             if (hasLocationPermission) {
-                // Subtle location indicator
-                if (currentLocation != null) {
+                // Location indicator with refresh button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -132,14 +178,53 @@ fun ReportViolationScreen(navController: NavController) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Location detected",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                                                 Column {
+                             Text(
+                                 text = if (currentLocation != null) "Location detected" else "Getting location...",
+                                 style = MaterialTheme.typography.bodySmall,
+                                 color = MaterialTheme.colorScheme.primary
+                             )
+                             if (locationAddress != null) {
+                                 Text(
+                                     text = locationAddress!!,
+                                     style = MaterialTheme.typography.bodySmall,
+                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                 )
+                             }
+                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Refresh location button
+                    IconButton(
+                        onClick = { 
+                            isLocationLoading = true
+                            getCurrentLocation(context) { location ->
+                                currentLocation = location
+                                if (location != null) {
+                                    getAddressFromLocation(context, location) { address ->
+                                        locationAddress = address
+                                    }
+                                }
+                                isLocationLoading = false
+                            }
+                        },
+                        enabled = !isLocationLoading
+                    ) {
+                        if (isLocationLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh location",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 MediaCaptureSection(
                     selectedMediaUri = selectedMediaUri,
@@ -172,22 +257,108 @@ fun ReportViolationScreen(navController: NavController) {
 
                     // Violation Type Selection
                     ViolationTypeSection(
-                        selectedType = selectedViolationType,
-                        onTypeSelected = { selectedViolationType = it },
+                        selectedTypes = selectedViolationTypes,
+                        onTypeSelected = { selectedViolationTypes = it },
                         onShowDialog = { showViolationTypeDialog = true }
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Location Map Section (Below violation types)
+                    if (currentLocation != null) {
+                        LocationMapSection(
+                            location = currentLocation!!,
+                            onLocationChanged = { newLocation ->
+                                currentLocation = newLocation
+                            }
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                    } else {
+                        // Debug info - show when location is not available
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Location Not Available",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = "Please grant location permission to see the map",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
 
                     // Submit Button
+                    val isSubmitEnabled = selectedMediaUri != null && selectedViolationTypes.isNotEmpty() && currentLocation != null
+                    
                     Button(
-                        onClick = { /* TODO: Submit report */ },
+                        onClick = { 
+                            // Submit report with all details
+                            coroutineScope.launch {
+                                submitReport(
+                                    mediaUri = selectedMediaUri!!,
+                                    violationTypes = selectedViolationTypes,
+                                    location = currentLocation!!,
+                                    navController = navController,
+                                    context = context
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = selectedMediaUri != null && selectedViolationType != null
+                        enabled = isSubmitEnabled
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Submit Report")
+                    }
+                    
+                    // Debug info for submit button
+                    if (!isSubmitEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "Submit Button Requirements:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = "• Media: ${if (selectedMediaUri != null) "✓" else "✗"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = "• Violation Types: ${if (selectedViolationTypes.isNotEmpty()) "✓" else "✗"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = "• Location: ${if (currentLocation != null) "✓" else "✗"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -197,12 +368,14 @@ fun ReportViolationScreen(navController: NavController) {
         if (showViolationTypeDialog) {
             ViolationTypeDialog(
                 onDismiss = { showViolationTypeDialog = false },
-                onTypeSelected = { type ->
-                    selectedViolationType = type
+                onTypeSelected = { types ->
+                    selectedViolationTypes = types
                     showViolationTypeDialog = false
                 }
             )
         }
+
+        // Full Map Dialog removed - map is now integrated directly
     }
 }
 
@@ -375,11 +548,11 @@ fun MediaPreviewSection(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Actual media thumbnail
+            // Actual media thumbnail with aspect ratio preservation
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(250.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .border(
                         width = 1.dp,
@@ -388,14 +561,14 @@ fun MediaPreviewSection(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                // Show actual media thumbnail
+                // Show actual media thumbnail with proper aspect ratio
                 Image(
                     painter = rememberAsyncImagePainter(
                         model = mediaUri
                     ),
                     contentDescription = "Captured media thumbnail",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
                 
                 // Play button overlay for videos
@@ -421,13 +594,13 @@ fun MediaPreviewSection(
 
 @Composable
 fun ViolationTypeSection(
-    selectedType: ViolationType?,
-    onTypeSelected: (ViolationType) -> Unit,
+    selectedTypes: Set<ViolationType>,
+    onTypeSelected: (Set<ViolationType>) -> Unit,
     onShowDialog: () -> Unit
 ) {
     Column {
         Text(
-            text = "Violation Type",
+            text = "Violation Types",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -441,42 +614,46 @@ fun ViolationTypeSection(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Category,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedType?.displayName ?: "Select Violation Type",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (selectedType != null) 
-                            MaterialTheme.colorScheme.onSurface 
-                        else 
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Category,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    if (selectedType != null) {
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Tap to change",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            text = if (selectedTypes.isEmpty()) "Select Violation Types" else "${selectedTypes.size} violation(s) selected",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (selectedTypes.isNotEmpty()) 
+                                MaterialTheme.colorScheme.onSurface 
+                            else 
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
+                        if (selectedTypes.isNotEmpty()) {
+                            Text(
+                                text = selectedTypes.joinToString(", ") { it.displayName },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2
+                            )
+                        }
                     }
+                    
+                                         Icon(
+                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                         contentDescription = null,
+                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                     )
                 }
-                
-                Icon(
-                    imageVector = Icons.Default.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
             }
         }
     }
@@ -485,12 +662,14 @@ fun ViolationTypeSection(
 @Composable
 fun ViolationTypeDialog(
     onDismiss: () -> Unit,
-    onTypeSelected: (ViolationType) -> Unit
+    onTypeSelected: (Set<ViolationType>) -> Unit
 ) {
+    var selectedTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Select Violation Type")
+            Text("Select Violation Types")
         },
         text = {
             Column {
@@ -501,9 +680,15 @@ fun ViolationTypeDialog(
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(
-                            selected = false,
-                            onClick = { onTypeSelected(violationType) }
+                        Checkbox(
+                            checked = selectedTypes.contains(violationType),
+                            onCheckedChange = { checked ->
+                                selectedTypes = if (checked) {
+                                    selectedTypes + violationType
+                                } else {
+                                    selectedTypes - violationType
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -515,6 +700,14 @@ fun ViolationTypeDialog(
             }
         },
         confirmButton = {
+            TextButton(
+                onClick = { onTypeSelected(selectedTypes) },
+                enabled = selectedTypes.isNotEmpty()
+            ) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
@@ -522,4 +715,268 @@ fun ViolationTypeDialog(
     )
 }
 
-// LocationSelectionSection removed - location is now automatic and transparent
+@Composable
+fun LocationMapSection(
+    location: LatLng,
+    onLocationChanged: (LatLng) -> Unit
+) {
+    Column {
+        Text(
+            text = "Violation Location",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Drag the pin to set the exact violation location",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Google Maps with draggable pin
+                GoogleMapWithPin(
+                    initialLocation = location,
+                    onLocationChanged = onLocationChanged
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Location coordinates display
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "Lat: ${location.latitude.format(6)}, Lng: ${location.longitude.format(6)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GoogleMapWithPin(
+    initialLocation: LatLng,
+    onLocationChanged: (LatLng) -> Unit
+) {
+    var currentLocation by remember { mutableStateOf(initialLocation) }
+    var mapView by remember { mutableStateOf<MapView?>(null) }
+    var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(12.dp)
+            )
+    ) {
+        AndroidView(
+            factory = { context ->
+                MapView(context).apply {
+                    onCreate(null)
+                    mapView = this
+                }
+            },
+            update = { mapView ->
+                mapView.getMapAsync { googleMap ->
+                    // Set map properties
+                    googleMap.uiSettings.apply {
+                        isZoomControlsEnabled = true
+                        isMyLocationButtonEnabled = false
+                        isCompassEnabled = true
+                    }
+                    
+                    // Add marker at current location
+                    val markerOptions = MarkerOptions()
+                        .position(currentLocation)
+                        .title("Violation Location")
+                        .snippet("Drag to adjust location")
+                    
+                    marker = googleMap.addMarker(markerOptions)
+                    
+                    // Move camera to location
+                    val cameraPosition = CameraPosition.Builder()
+                        .target(currentLocation)
+                        .zoom(15f)
+                        .build()
+                    googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                    
+                    // Handle marker drag
+                    googleMap.setOnMarkerDragListener(object : com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
+                        override fun onMarkerDragStart(marker: com.google.android.gms.maps.model.Marker) {}
+                        
+                        override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) {}
+                        
+                        override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
+                            val newLocation = marker.position
+                            currentLocation = newLocation
+                            onLocationChanged(newLocation)
+                        }
+                    })
+                    
+                    // Make marker draggable
+                    marker?.isDraggable = true
+                }
+            }
+        )
+    }
+    
+    // Cleanup
+    DisposableEffect(Unit) {
+        onDispose {
+            mapView?.onDestroy()
+        }
+    }
+}
+
+// FullMapDialog removed - map is now integrated directly
+
+private suspend fun submitReport(
+    mediaUri: String,
+    violationTypes: Set<ViolationType>,
+    location: LatLng,
+    navController: NavController,
+    context: android.content.Context
+) {
+    // Create violation report with the first violation type (since the model supports only one)
+    val primaryViolationType = violationTypes.firstOrNull() ?: ViolationType.OTHERS
+    
+    val report = ViolationReport(
+        id = 0, // Room will auto-generate
+        reporterId = "current_user", // TODO: Get from auth
+        reporterPhone = "1234567890", // TODO: Get from auth
+        reporterCity = "Mumbai", // TODO: Get from user profile
+        reporterPincode = "400001", // TODO: Get from user profile
+        violationType = primaryViolationType,
+        severity = SeverityLevel.MAJOR, // TODO: Determine based on violation type
+        description = "Reported violations: ${violationTypes.joinToString(", ") { it.displayName }}",
+        timestamp = LocalDateTime.now(),
+        latitude = location.latitude,
+        longitude = location.longitude,
+        address = "Location: ${location.latitude.format(6)}, ${location.longitude.format(6)}",
+        pincode = "400001", // TODO: Get from location
+        city = "Mumbai", // TODO: Get from location
+        district = "Mumbai", // TODO: Get from location
+        state = "Maharashtra", // TODO: Get from location
+        vehicleNumber = null,
+        vehicleType = null,
+        vehicleColor = null,
+        photoUri = if (mediaUri.endsWith(".jpg") || mediaUri.endsWith(".png")) mediaUri else null,
+        videoUri = if (mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov")) mediaUri else null,
+        mediaMetadata = "Multiple violations: ${violationTypes.joinToString(", ") { it.displayName }}"
+    )
+    
+    // Save to database using repository
+    val database = AppDatabase.getDatabase(context)
+    val duplicateDetectionService = DuplicateDetectionService()
+    val jurisdictionService = JurisdictionService()
+    val repository = ViolationReportRepository(
+        database.violationReportDao(),
+        duplicateDetectionService,
+        jurisdictionService
+    )
+    
+    // Save the report to database
+    try {
+        repository.createReport(report)
+        println("Report saved successfully: $report")
+    } catch (e: Exception) {
+        println("Failed to save report: ${e.message}")
+    }
+    
+    // Navigate to reports page to show submissions
+    navController.navigate(Screen.ReportsHistory.route) {
+        popUpTo(Screen.Dashboard.route) { inclusive = false }
+    }
+}
+
+private fun Double.format(digits: Int) = "%.${digits}f".format(this)
+
+private fun getCurrentLocation(context: android.content.Context, onLocationReceived: (LatLng?) -> Unit) {
+    val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+    
+    try {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                object : CancellationToken() {
+                    override fun onCanceledRequested(listener: OnTokenCanceledListener) = CancellationTokenSource().token
+                    override fun isCancellationRequested() = false
+                }
+            ).addOnSuccessListener { location ->
+                location?.let {
+                    val latLng = LatLng(it.latitude, it.longitude)
+                    println("Location obtained: ${it.latitude}, ${it.longitude}")
+                    onLocationReceived(latLng)
+                } ?: run {
+                    println("Location is null")
+                    onLocationReceived(null)
+                }
+            }.addOnFailureListener { exception ->
+                println("Failed to get location: ${exception.message}")
+                // Fallback to a default location if GPS fails
+                onLocationReceived(LatLng(19.0760, 72.8777)) // Mumbai as fallback
+            }
+        } else {
+            println("Location permission not granted")
+            onLocationReceived(LatLng(19.0760, 72.8777)) // Mumbai as fallback
+        }
+    } catch (e: Exception) {
+        println("Error getting location: ${e.message}")
+        onLocationReceived(LatLng(19.0760, 72.8777)) // Mumbai as fallback
+    }
+}
+
+private fun getAddressFromLocation(context: android.content.Context, location: LatLng, onAddressReceived: (String?) -> Unit) {
+    try {
+        val geocoder = Geocoder(context)
+        // Use the synchronous version for API level 26 compatibility
+        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+        if (addresses != null && addresses.isNotEmpty()) {
+            val address = addresses[0]
+            val locality = address.locality ?: address.subLocality ?: "Unknown Area"
+            val city = address.adminArea ?: "Unknown City"
+            val addressText = "$locality, $city"
+            println("Address obtained: $addressText")
+            onAddressReceived(addressText)
+        } else {
+            println("No address found for location")
+            onAddressReceived(null)
+        }
+    } catch (e: Exception) {
+        println("Error getting address: ${e.message}")
+        onAddressReceived(null)
+    }
+}

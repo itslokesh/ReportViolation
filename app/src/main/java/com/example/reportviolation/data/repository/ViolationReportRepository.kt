@@ -19,6 +19,14 @@ class ViolationReportRepository(
         return violationReportDao.insertReport(report)
     }
     
+    suspend fun createReport(report: ViolationReport): Long {
+        return violationReportDao.insertReport(report)
+    }
+    
+    suspend fun getAllReports(): List<ViolationReport> {
+        return violationReportDao.getAllReports()
+    }
+    
     suspend fun updateViolationReport(report: ViolationReport) {
         violationReportDao.updateReport(report)
     }

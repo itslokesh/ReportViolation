@@ -22,6 +22,9 @@ interface ViolationReportDao {
     @Query("SELECT * FROM violation_reports WHERE id = :reportId")
     suspend fun getReportById(reportId: Long): ViolationReport?
     
+    @Query("SELECT * FROM violation_reports ORDER BY createdAt DESC")
+    suspend fun getAllReports(): List<ViolationReport>
+    
     @Query("SELECT * FROM violation_reports WHERE reporterId = :reporterId ORDER BY createdAt DESC")
     fun getReportsByReporter(reporterId: String): Flow<List<ViolationReport>>
     
