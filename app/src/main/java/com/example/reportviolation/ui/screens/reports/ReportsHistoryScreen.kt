@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +36,18 @@ import com.example.reportviolation.data.local.AppDatabase
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
 import java.time.format.DateTimeFormatter
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import com.example.reportviolation.ui.components.MediaPreviewDialog
+
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +216,17 @@ fun ReportCard(report: ViolationReport) {
             
             // Media preview
             if (report.photoUri != null || report.videoUri != null) {
+                var showPreviewDialog by remember { mutableStateOf(false) }
+                val mediaUri = report.photoUri ?: report.videoUri!!
+                
+                // Media preview dialog
+                if (showPreviewDialog) {
+                    MediaPreviewDialog(
+                        mediaUri = mediaUri,
+                        onDismiss = { showPreviewDialog = false }
+                    )
+                }
+                
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -212,7 +236,8 @@ fun ReportCard(report: ViolationReport) {
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.outline,
                             shape = RoundedCornerShape(8.dp)
-                        ),
+                        )
+                        .clickable { showPreviewDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
                     when {
@@ -263,25 +288,51 @@ fun ReportCard(report: ViolationReport) {
                             }
                         }
                         report.videoUri != null -> {
-                            // Display video thumbnail with play button
+                            // Display video placeholder with play button
+                            
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Video thumbnail (you might want to generate thumbnails for videos)
+                                // Video placeholder with play button
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.3f))
-                                )
+                                        .background(Color.Gray.copy(alpha = 0.3f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Videocam,
+                                            contentDescription = "Video",
+                                            modifier = Modifier.size(32.dp),
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Video Evidence",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
                                 
                                 // Play button overlay
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Play video",
-                                    modifier = Modifier.size(48.dp),
-                                    tint = Color.White
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.3f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "Play video",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color.White
+                                    )
+                                }
                             }
                         }
                     }

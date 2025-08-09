@@ -52,6 +52,8 @@ fun CameraScreen(
     var showPreview by remember { mutableStateOf(false) }
     var capturedMediaUri by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    var recordingDuration by remember { mutableStateOf(0L) }
+    var recordingStartTime by remember { mutableStateOf(0L) }
     
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -108,6 +110,19 @@ fun CameraScreen(
                 uiState.lastCapturedVideo?.toString()
             }
             showPreview = true
+        }
+    }
+    
+    // Video recording timer
+    LaunchedEffect(uiState.isRecording) {
+        if (uiState.isRecording) {
+            recordingStartTime = System.currentTimeMillis()
+            while (uiState.isRecording) {
+                recordingDuration = System.currentTimeMillis() - recordingStartTime
+                kotlinx.coroutines.delay(100) // Update every 100ms
+            }
+        } else {
+            recordingDuration = 0L
         }
     }
     
@@ -225,7 +240,7 @@ fun CameraScreen(
                         }
                     }
                     
-                    // Recording indicator
+                    // Recording indicator with timer
                     if (uiState.isRecording) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -241,6 +256,13 @@ fun CameraScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "REC",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = formatDuration(recordingDuration),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -499,4 +521,12 @@ fun CameraScreen(
             )
         }
     }
+}
+
+// Format duration in MM:SS format
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%02d:%02d", minutes, seconds)
 }

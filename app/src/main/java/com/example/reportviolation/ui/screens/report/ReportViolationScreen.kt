@@ -61,6 +61,18 @@ import java.time.LocalDateTime
 import com.example.reportviolation.ui.screens.maps.MapsActivity
 import android.content.Intent
 import android.widget.Toast
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import com.example.reportviolation.ui.components.MediaPreviewDialog
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -581,6 +593,18 @@ fun MediaPreviewSection(
     mediaUri: String,
     onRemove: () -> Unit
 ) {
+    var showPreviewDialog by remember { mutableStateOf(false) }
+    
+    val isVideo = mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov") || mediaUri.contains("video")
+    
+    // Media preview dialog
+    if (showPreviewDialog) {
+        MediaPreviewDialog(
+            mediaUri = mediaUri,
+            onDismiss = { showPreviewDialog = false }
+        )
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -596,7 +620,7 @@ fun MediaPreviewSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Captured Media",
+                    text = if (isVideo) "Captured Video" else "Captured Photo",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -612,7 +636,7 @@ fun MediaPreviewSection(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Actual media thumbnail with aspect ratio preservation
+            // Media thumbnail with aspect ratio preservation
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -622,33 +646,63 @@ fun MediaPreviewSection(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outline,
                         shape = RoundedCornerShape(12.dp)
-                    ),
+                    )
+                    .clickable { showPreviewDialog = true },
                 contentAlignment = Alignment.Center
             ) {
-                // Show actual media thumbnail with proper aspect ratio
-                Image(
-                    painter = rememberAsyncImagePainter(
-                        model = mediaUri
-                    ),
-                    contentDescription = "Captured media thumbnail",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-                
-                // Play button overlay for videos
-                if (mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov")) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play video",
-                            modifier = Modifier.size(48.dp),
-                            tint = Color.White
+                when {
+                    // Show image (photo)
+                    !isVideo -> {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                model = mediaUri
+                            ),
+                            contentDescription = "Photo thumbnail",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
                         )
+                    }
+                    
+                    // Show video placeholder with play button
+                    else -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Gray.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = "Video",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Video",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        
+                        // Play button overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play video",
+                                modifier = Modifier.size(48.dp),
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
             }
