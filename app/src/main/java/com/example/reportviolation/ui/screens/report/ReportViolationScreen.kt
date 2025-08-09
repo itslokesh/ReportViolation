@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import java.time.LocalDateTime
 import com.example.reportviolation.ui.screens.maps.MapsActivity
 import android.content.Intent
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +75,36 @@ fun ReportViolationScreen(navController: NavController) {
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Activity result launcher for full-screen map
+    val fullMapLauncher = rememberLauncherForActivityResult(
+        contract = StartActivityForResult()
+    ) { result ->
+        println("Activity result received: ${result.resultCode}")
+        when (result.resultCode) {
+            android.app.Activity.RESULT_OK -> {
+                println("Activity result OK")
+                result.data?.let { data ->
+                    val latitude = data.getDoubleExtra("selected_latitude", 0.0)
+                    val longitude = data.getDoubleExtra("selected_longitude", 0.0)
+                    val address = data.getStringExtra("selected_address")
+                    
+                    println("Received location: $latitude, $longitude")
+                    println("Received address: $address")
+                    
+                    if (latitude != 0.0 && longitude != 0.0) {
+                        currentLocation = LatLng(latitude, longitude)
+                        locationAddress = address
+                        println("Location updated successfully")
+                    }
+                }
+            }
+            android.app.Activity.RESULT_CANCELED -> {
+                // User cancelled or there was an error, keep current location
+                println("Full screen map was cancelled or encountered an error")
+            }
+        }
+    }
 
     // Check initial permission status and get location if already granted
     LaunchedEffect(Unit) {
@@ -239,14 +271,16 @@ fun ReportViolationScreen(navController: NavController) {
                     selectedMediaUri = selectedMediaUri,
                     onPhotoClick = {
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            navController.navigate(Screen.Camera.route)
+                            android.util.Log.d("ReportViolationScreen", "Navigating to camera screen with PHOTO mode")
+                            navController.navigate("${Screen.Camera.route}?mode=PHOTO")
                         } else {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     },
                     onVideoClick = {
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            navController.navigate(Screen.Camera.route)
+                            android.util.Log.d("ReportViolationScreen", "Navigating to camera screen with VIDEO mode")
+                            navController.navigate("${Screen.Camera.route}?mode=VIDEO")
                         } else {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         }
@@ -275,13 +309,32 @@ fun ReportViolationScreen(navController: NavController) {
 
                     // Location Map Section (Below violation types)
                     if (currentLocation != null) {
-                                                 LocationMapSection(
-                             location = currentLocation!!,
-                             address = locationAddress,
-                             onLocationChanged = { newLocation ->
-                                 currentLocation = newLocation
-                             }
-                         )
+                        LocationMapSection(
+                            location = currentLocation!!,
+                            address = locationAddress,
+                            onLocationChanged = { newLocation ->
+                                currentLocation = newLocation
+                            },
+                            onFullMapRequest = {
+                                try {
+                                    println("Full screen button clicked!")
+                                    Toast.makeText(context, "Opening full screen map...", Toast.LENGTH_SHORT).show()
+                                    println("Current location: ${currentLocation?.latitude}, ${currentLocation?.longitude}")
+                                    
+                                    val intent = Intent(context, MapsActivity::class.java).apply {
+                                        putExtra("latitude", currentLocation!!.latitude)
+                                        putExtra("longitude", currentLocation!!.longitude)
+                                    }
+                                    println("Intent created: $intent")
+                                    fullMapLauncher.launch(intent)
+                                    println("Activity launcher called")
+                                } catch (e: Exception) {
+                                    println("Error launching full screen map: ${e.message}")
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    e.printStackTrace()
+                                }
+                            }
+                        )
                         
                         Spacer(modifier = Modifier.height(24.dp))
                     } else {
@@ -730,17 +783,11 @@ fun ViolationTypeDialog(
 fun LocationMapSection(
     location: LatLng,
     address: String?,
-    onLocationChanged: (LatLng) -> Unit
+    onLocationChanged: (LatLng) -> Unit,
+    onFullMapRequest: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    fun openFullMap() {
-        val intent = Intent(context, MapsActivity::class.java).apply {
-            putExtra("latitude", location.latitude)
-            putExtra("longitude", location.longitude)
-        }
-        context.startActivity(intent)
-    }
+    // Remember the initial location to prevent marker recreation
+    val initialLocation = remember { location }
     Column {
         Text(
             text = "Violation Location",
@@ -751,7 +798,7 @@ fun LocationMapSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Drag the pin to set the exact violation location",
+            text = "Move the map to set the exact violation location (pin stays centered)",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -769,7 +816,7 @@ fun LocationMapSection(
             ) {
                 // Google Maps with draggable pin
                 GoogleMapWithPin(
-                    initialLocation = location,
+                    initialLocation = initialLocation,
                     onLocationChanged = onLocationChanged
                 )
 
@@ -816,7 +863,7 @@ fun LocationMapSection(
 
                         // Full Map Button
                         Button(
-                            onClick = { openFullMap() },
+                            onClick = onFullMapRequest,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.secondary
                             )
@@ -827,90 +874,10 @@ fun LocationMapSection(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Full Map")
+                            Text("View Full Screen")
                         }
                     }
                 }
-            }
-        }
-    }
-
-    @Composable
-    fun GoogleMapWithPin(
-        initialLocation: LatLng,
-        onLocationChanged: (LatLng) -> Unit
-    ) {
-        var currentLocation by remember { mutableStateOf(initialLocation) }
-        var mapView by remember { mutableStateOf<MapView?>(null) }
-        var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .border(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(12.dp)
-                )
-        ) {
-            AndroidView(
-                factory = { context ->
-                    MapView(context).apply {
-                        onCreate(null)
-                        mapView = this
-                    }
-                },
-                update = { mapView ->
-                    mapView.getMapAsync { googleMap ->
-                        // Set map properties
-                        googleMap.uiSettings.apply {
-                            isZoomControlsEnabled = true
-                            isMyLocationButtonEnabled = false
-                            isCompassEnabled = true
-                        }
-
-                        // Add marker at current location
-                        val markerOptions = MarkerOptions()
-                            .position(currentLocation)
-                            .title("Violation Location")
-                            .snippet("Drag to adjust location")
-
-                        marker = googleMap.addMarker(markerOptions)
-
-                        // Move camera to location
-                        val cameraPosition = CameraPosition.Builder()
-                            .target(currentLocation)
-                            .zoom(15f)
-                            .build()
-                        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-
-                        // Handle marker drag
-                        googleMap.setOnMarkerDragListener(object :
-                            com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
-                            override fun onMarkerDragStart(marker: com.google.android.gms.maps.model.Marker) {}
-
-                            override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) {}
-
-                            override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
-                                val newLocation = marker.position
-                                currentLocation = newLocation
-                                onLocationChanged(newLocation)
-                            }
-                        })
-
-                        // Make marker draggable
-                        marker?.isDraggable = true
-                    }
-                }
-            )
-        }
-
-        // Cleanup
-        DisposableEffect(Unit) {
-            onDispose {
-                mapView?.onDestroy()
             }
         }
     }
@@ -921,9 +888,9 @@ fun GoogleMapWithPin(
     initialLocation: LatLng,
     onLocationChanged: (LatLng) -> Unit
 ) {
-    var currentLocation by remember { mutableStateOf(initialLocation) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
+    var isMapInitialized by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -944,51 +911,49 @@ fun GoogleMapWithPin(
                 }
             },
             update = { mapView ->
-                mapView.getMapAsync { googleMap ->
-                    // Set map properties
-                    googleMap.uiSettings.apply {
-                        isZoomControlsEnabled = true
-                        isMyLocationButtonEnabled = false
-                        isCompassEnabled = true
-                    }
-
-                    // Add marker at current location
-                    val markerOptions = MarkerOptions()
-                        .position(currentLocation)
-                        .title("Violation Location")
-                        .snippet("Drag to adjust location")
-
-                    marker = googleMap.addMarker(markerOptions)
-
-                    // Move camera to location
-                    val cameraPosition = CameraPosition.Builder()
-                        .target(currentLocation)
-                        .zoom(15f)
-                        .build()
-                    googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-
-                    // Handle marker drag
-                    googleMap.setOnMarkerDragListener(object :
-                        com.google.android.gms.maps.GoogleMap.OnMarkerDragListener {
-                        override fun onMarkerDragStart(marker: com.google.android.gms.maps.model.Marker) {}
-
-                        override fun onMarkerDrag(marker: com.google.android.gms.maps.model.Marker) {}
-
-                        override fun onMarkerDragEnd(marker: com.google.android.gms.maps.model.Marker) {
-                            val newLocation = marker.position
-                            currentLocation = newLocation
-                            onLocationChanged(newLocation)
+                // Only initialize the map once
+                if (!isMapInitialized) {
+                    mapView.getMapAsync { googleMap ->
+                        // Set map properties
+                        googleMap.uiSettings.apply {
+                            isZoomControlsEnabled = true
+                            isMyLocationButtonEnabled = false
+                            isCompassEnabled = true
+                            isMapToolbarEnabled = false
                         }
-                    })
 
-                    // Make marker draggable
-                    marker?.isDraggable = true
+                        // Add marker at initial location (will stay fixed)
+                        val markerOptions = MarkerOptions()
+                            .position(initialLocation)
+                            .title("Violation Location")
+                            .snippet("Move map to adjust location")
+
+                        marker = googleMap.addMarker(markerOptions)
+                        marker?.isDraggable = false
+                        
+                        // Move camera to initial location only once
+                        val cameraPosition = CameraPosition.Builder()
+                            .target(initialLocation)
+                            .zoom(15f)
+                            .build()
+                        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                        
+                        // Handle camera movement instead of marker drag (Google Maps-like behavior)
+                        googleMap.setOnCameraIdleListener {
+                            val centerPosition = googleMap.cameraPosition.target
+                            // Update location data but NEVER update marker position
+                            println("Camera moved to: ${centerPosition.latitude}, ${centerPosition.longitude}")
+                            println("Marker position: ${marker?.position?.latitude}, ${marker?.position?.longitude}")
+                            onLocationChanged(centerPosition)
+                        }
+                        
+                        isMapInitialized = true
+                    }
                 }
             }
         )
     }
 
-    // Cleanup
     DisposableEffect(Unit) {
         onDispose {
             mapView?.onDestroy()
@@ -1112,56 +1077,74 @@ private fun getAddressFromLocation(
 ) {
     try {
         val geocoder = Geocoder(context)
-        // Use the synchronous version for API level 26 compatibility
-        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-        if (addresses != null && addresses.isNotEmpty()) {
-            val address = addresses[0]
-
-            // Build detailed address with multiple components
-            val addressParts = mutableListOf<String>()
-
-            // Add sub-locality (neighborhood/area) if available
-            address.subLocality?.let {
-                if (it.isNotBlank()) addressParts.add(it)
+        
+        // Use the newer async API for better compatibility
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                if (addresses != null && addresses.isNotEmpty()) {
+                    val address = addresses[0]
+                    val addressText = buildDetailedAddress(address)
+                    println("Detailed address obtained: $addressText")
+                    onAddressReceived(addressText)
+                } else {
+                    println("No address found for location")
+                    onAddressReceived(null)
+                }
             }
-
-            // Add thoroughfare (street name) if available
-            address.thoroughfare?.let {
-                if (it.isNotBlank()) addressParts.add(it)
-            }
-
-            // Add sub-thoroughfare (landmark/building) if available
-            address.subThoroughfare?.let {
-                if (it.isNotBlank()) addressParts.add(it)
-            }
-
-            // Add locality (city district) if available
-            address.locality?.let {
-                if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
-            }
-
-            // Add admin area (city) if available
-            address.adminArea?.let {
-                if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
-            }
-
-            // If we have detailed parts, use them; otherwise fallback to basic locality
-            val addressText = if (addressParts.isNotEmpty()) {
-                addressParts.joinToString(", ")
-            } else {
-                val locality = address.locality ?: address.subLocality ?: "Unknown Area"
-                val city = address.adminArea ?: "Unknown City"
-                "$locality, $city"
-            }
-
-            println("Detailed address obtained: $addressText")
-            onAddressReceived(addressText)
         } else {
-            println("No address found for location")
-            onAddressReceived(null)
+            // Fallback for older API levels
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            if (addresses != null && addresses.isNotEmpty()) {
+                val address = addresses[0]
+                val addressText = buildDetailedAddress(address)
+                println("Detailed address obtained: $addressText")
+                onAddressReceived(addressText)
+            } else {
+                println("No address found for location")
+                onAddressReceived(null)
+            }
         }
     } catch (e: Exception) {
         println("Error getting address: ${e.message}")
         onAddressReceived(null)
+    }
+}
+
+private fun buildDetailedAddress(address: Address): String {
+    // Build detailed address with multiple components
+    val addressParts = mutableListOf<String>()
+
+    // Add sub-locality (neighborhood/area) if available
+    address.subLocality?.let {
+        if (it.isNotBlank()) addressParts.add(it)
+    }
+
+    // Add thoroughfare (street name) if available
+    address.thoroughfare?.let {
+        if (it.isNotBlank()) addressParts.add(it)
+    }
+
+    // Add sub-thoroughfare (landmark/building) if available
+    address.subThoroughfare?.let {
+        if (it.isNotBlank()) addressParts.add(it)
+    }
+
+    // Add locality (city district) if available
+    address.locality?.let {
+        if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
+    }
+
+    // Add admin area (city) if available
+    address.adminArea?.let {
+        if (it.isNotBlank() && !addressParts.contains(it)) addressParts.add(it)
+    }
+
+    // If we have detailed parts, use them; otherwise fallback to basic locality
+    return if (addressParts.isNotEmpty()) {
+        addressParts.joinToString(", ")
+    } else {
+        val locality = address.locality ?: address.subLocality ?: "Unknown Area"
+        val city = address.adminArea ?: "Unknown City"
+        "$locality, $city"
     }
 }

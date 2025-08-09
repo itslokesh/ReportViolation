@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.reportviolation.ui.screens.auth.LoginScreen
 import com.example.reportviolation.ui.screens.auth.RegistrationScreen
 import com.example.reportviolation.ui.screens.camera.CameraScreen
@@ -40,8 +42,17 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
             ReportViolationScreen(navController)
         }
         
-        composable(Screen.Camera.route) {
-            CameraScreen(navController)
+        composable(
+            route = "${Screen.Camera.route}?mode={mode}",
+            arguments = listOf(
+                navArgument("mode") {
+                    type = NavType.StringType
+                    defaultValue = "PHOTO"
+                }
+            )
+        ) { backStackEntry ->
+            val mode = backStackEntry.arguments?.getString("mode") ?: "PHOTO"
+            CameraScreen(navController, mode)
         }
         
         composable(Screen.Map.route) {

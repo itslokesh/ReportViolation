@@ -71,7 +71,7 @@
             android:name=".ui.screens.maps.MapsActivity"
             android:exported="false"
             android:label="Map View"
-            android:theme="@style/Theme.ReportViolation" />
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         
 
         

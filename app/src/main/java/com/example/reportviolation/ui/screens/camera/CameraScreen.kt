@@ -17,10 +17,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,8 +33,20 @@ import androidx.navigation.NavController
 @Composable
 fun CameraScreen(
     navController: NavController,
+    mode: String = "PHOTO",
     viewModel: CameraViewModel = viewModel()
 ) {
+    // Get the camera mode from navigation argument
+    val initialMode = if (mode == "VIDEO") CameraMode.VIDEO else CameraMode.PHOTO
+    
+    // Debug logging
+    android.util.Log.d("CameraScreen", "=== CAMERA SCREEN INITIALIZATION ===")
+    android.util.Log.d("CameraScreen", "Mode from navigation argument: '$mode'")
+    android.util.Log.d("CameraScreen", "Initial mode set to: $initialMode")
+    android.util.Log.d("CameraScreen", "=== END CAMERA SCREEN INITIALIZATION ===")
+    
+
+    
     var hasCameraPermission by remember { mutableStateOf(false) }
     var hasMicrophonePermission by remember { mutableStateOf(false) }
     var showPreview by remember { mutableStateOf(false) }
@@ -42,6 +54,7 @@ fun CameraScreen(
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Check initial permissions
@@ -62,9 +75,6 @@ fun CameraScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasCameraPermission = isGranted
-        if (isGranted && previewView != null) {
-            viewModel.initializeCamera(context, previewView!!)
-        }
     }
     
     // Microphone permission launcher
@@ -78,6 +88,14 @@ fun CameraScreen(
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+    
+    // Initialize camera when permission is granted and preview is available
+    LaunchedEffect(hasCameraPermission, previewView, initialMode) {
+        if (hasCameraPermission && previewView != null) {
+            android.util.Log.d("CameraScreen", "LaunchedEffect triggered - initializing camera with mode: $initialMode")
+            viewModel.initializeCameraWithMode(initialMode, context, previewView!!, lifecycleOwner)
         }
     }
     
@@ -96,7 +114,7 @@ fun CameraScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Capture Evidence") },
+                title = { Text(if (initialMode == CameraMode.PHOTO) "Take Photo" else "Record Video") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
@@ -123,13 +141,7 @@ fun CameraScreen(
                             previewView = it
                         }
                     },
-                    modifier = Modifier.fillMaxSize(),
-                    update = { newPreviewView ->
-                        previewView = newPreviewView
-                        if (hasCameraPermission) {
-                            viewModel.initializeCamera(context, newPreviewView)
-                        }
-                    }
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
                 // Camera Preview Placeholder
@@ -240,7 +252,7 @@ fun CameraScreen(
                     IconButton(
                         onClick = { 
                             previewView?.let { view ->
-                                viewModel.switchCamera(context, view)
+                                viewModel.switchCamera(context, view, lifecycleOwner)
                             }
                         },
                         modifier = Modifier
@@ -265,93 +277,86 @@ fun CameraScreen(
                         .fillMaxWidth()
                         .padding(32.dp)
                 ) {
-                    // Capture controls
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Capture button (Photo)
-                        IconButton(
-                            onClick = {
-                                if (!uiState.isRecording) {
+                    // Capture controls based on mode
+                    when (uiState.cameraMode) {
+                        CameraMode.PHOTO -> {
+                            // Photo capture button
+                            IconButton(
+                                onClick = {
                                     viewModel.takePhoto(context) { _ ->
                                         // Photo captured successfully
                                     }
-                                }
-                            },
-                            modifier = Modifier
-                                .size(80.dp)
-                                .background(
-                                    if (uiState.isRecording) Color.Gray else Color.White,
-                                    CircleShape
-                                )
-                                .border(
-                                    width = 4.dp,
-                                    color = if (uiState.isRecording) Color.Gray else Color.White,
-                                    shape = CircleShape
-                                ),
-                            enabled = !uiState.isRecording
-                        ) {
-                            Icon(
-                                Icons.Default.Camera,
-                                contentDescription = "Take Photo",
-                                tint = Color.Black,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
-                        
-                        // Video recording button (only show if supported)
-                        if (uiState.hasVideoCapture) {
-                            Box {
-                                IconButton(
-                                    onClick = {
-                                        if (uiState.isRecording) {
-                                            viewModel.stopVideoRecording()
-                                        } else {
-                                            // Check microphone permission before starting video recording
-                                            if (hasMicrophonePermission) {
-                                                viewModel.startVideoRecording(context)
-                                            } else {
-                                                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .background(
-                                            if (uiState.isRecording) Color.Red else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                            CircleShape
-                                        )
-                                        .border(
-                                            width = 4.dp,
-                                            color = if (uiState.isRecording) Color.Red else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                            shape = CircleShape
-                                        )
-                                ) {
-                                    Icon(
-                                        if (uiState.isRecording) Icons.Default.Stop else Icons.Default.Videocam,
-                                        contentDescription = if (uiState.isRecording) "Stop Recording" else "Start Recording",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(40.dp)
+                                },
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .background(Color.White, CircleShape)
+                                    .border(
+                                        width = 4.dp,
+                                        color = Color.White,
+                                        shape = CircleShape
                                     )
-                                }
-                                
-                                // Microphone permission indicator
-                                if (!hasMicrophonePermission && !uiState.isRecording) {
-                                    Box(
+                            ) {
+                                Icon(
+                                    Icons.Default.Camera,
+                                    contentDescription = "Take Photo",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
+                        CameraMode.VIDEO -> {
+                            // Video recording button
+                            if (uiState.hasVideoCapture) {
+                                Box {
+                                    IconButton(
+                                        onClick = {
+                                            if (uiState.isRecording) {
+                                                viewModel.stopVideoRecording()
+                                            } else {
+                                                // Check microphone permission before starting video recording
+                                                if (hasMicrophonePermission) {
+                                                    viewModel.startVideoRecording(context)
+                                                } else {
+                                                    microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                                }
+                                            }
+                                        },
                                         modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(16.dp)
-                                            .background(Color(0xFFFF9800), CircleShape)
-                                            .border(2.dp, Color.White, CircleShape)
+                                            .size(80.dp)
+                                            .background(
+                                                if (uiState.isRecording) Color.Red else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                                CircleShape
+                                            )
+                                            .border(
+                                                width = 4.dp,
+                                                color = if (uiState.isRecording) Color.Red else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                                shape = CircleShape
+                                            )
                                     ) {
                                         Icon(
-                                            Icons.Default.Mic,
-                                            contentDescription = "Microphone permission needed",
+                                            if (uiState.isRecording) Icons.Default.Stop else Icons.Default.Videocam,
+                                            contentDescription = if (uiState.isRecording) "Stop Recording" else "Start Recording",
                                             tint = Color.White,
-                                            modifier = Modifier.size(10.dp)
+                                            modifier = Modifier.size(40.dp)
                                         )
+                                    }
+                                    
+                                    // Microphone permission indicator
+                                    if (!hasMicrophonePermission && !uiState.isRecording) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .size(16.dp)
+                                                .background(Color(0xFFFF9800), CircleShape)
+                                                .border(2.dp, Color.White, CircleShape)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Mic,
+                                                contentDescription = "Microphone permission needed",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -382,23 +387,72 @@ fun CameraScreen(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            Text(
+                                text = uiState.error!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                         
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        Text(
-                            text = uiState.error!!,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        // Add retry button for video recording errors
+                        if (uiState.error!!.contains("Video") || uiState.error!!.contains("Camera")) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            viewModel.clearError()
+                                            previewView?.let { view ->
+                                                if (uiState.error!!.contains("session conflict")) {
+                                                    viewModel.forceRestartCamera(context, view, lifecycleOwner)
+                                                } else {
+                                                    viewModel.reinitializeCamera(context, view, lifecycleOwner)
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Text("Retry")
+                                    }
+                                    
+                                    TextButton(
+                                        onClick = {
+                                            viewModel.clearError()
+                                        }
+                                    ) {
+                                        Text("Dismiss")
+                                    }
+                                }
+                                
+                                // Add suggestion for photo capture if video fails
+                                if (uiState.error!!.contains("Video")) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Tip: Try taking a photo instead if video continues to fail",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
