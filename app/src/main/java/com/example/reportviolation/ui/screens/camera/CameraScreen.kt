@@ -49,7 +49,6 @@ fun CameraScreen(
     
     var hasCameraPermission by remember { mutableStateOf(false) }
     var hasMicrophonePermission by remember { mutableStateOf(false) }
-    var showPreview by remember { mutableStateOf(false) }
     var capturedMediaUri by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var recordingDuration by remember { mutableStateOf(0L) }
@@ -101,7 +100,7 @@ fun CameraScreen(
         }
     }
     
-    // Handle captured media
+    // Handle captured media - automatically use captured media without confirmation
     LaunchedEffect(uiState.isPhotoCaptured, uiState.isVideoCaptured) {
         if (uiState.isPhotoCaptured || uiState.isVideoCaptured) {
             capturedMediaUri = if (uiState.isPhotoCaptured) {
@@ -109,7 +108,11 @@ fun CameraScreen(
             } else {
                 uiState.lastCapturedVideo?.toString()
             }
-            showPreview = true
+            // Automatically navigate back with the captured media
+            capturedMediaUri?.let { uri ->
+                navController.previousBackStackEntry?.savedStateHandle?.set("capturedMediaUri", uri)
+            }
+            navController.navigateUp()
         }
     }
     
@@ -270,25 +273,27 @@ fun CameraScreen(
                         }
                     }
                     
-                    // Switch camera button
-                    IconButton(
-                        onClick = { 
-                            previewView?.let { view ->
-                                viewModel.switchCamera(context, view, lifecycleOwner)
-                            }
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                CircleShape
+                    // Switch camera button - hide during recording
+                    if (!uiState.isRecording) {
+                        IconButton(
+                            onClick = { 
+                                previewView?.let { view ->
+                                    viewModel.switchCamera(context, view, lifecycleOwner)
+                                }
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                Icons.Default.Cameraswitch,
+                                contentDescription = "Switch Camera",
+                                tint = Color.White
                             )
-                    ) {
-                        Icon(
-                            Icons.Default.Cameraswitch,
-                            contentDescription = "Switch Camera",
-                            tint = Color.White
-                        )
+                        }
                     }
                 }
                 
@@ -478,47 +483,6 @@ fun CameraScreen(
                     }
                 }
             }
-        }
-        
-        // Preview dialog
-        if (showPreview && capturedMediaUri != null) {
-            AlertDialog(
-                onDismissRequest = { 
-                    showPreview = false
-                    viewModel.resetCaptureState()
-                },
-                title = {
-                    Text("Media Captured")
-                },
-                text = {
-                    Text("Your ${if (uiState.isVideoCaptured) "video" else "photo"} has been captured successfully.")
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showPreview = false
-                            // Navigate back to Report Violation screen with the captured media
-                            capturedMediaUri?.let { uri ->
-                                navController.previousBackStackEntry?.savedStateHandle?.set("capturedMediaUri", uri)
-                            }
-                            navController.navigateUp()
-                        }
-                    ) {
-                        Text("Use This Media")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showPreview = false
-                            capturedMediaUri = null
-                            viewModel.resetCaptureState()
-                        }
-                    ) {
-                        Text("Retake")
-                    }
-                }
-            )
         }
     }
 }
