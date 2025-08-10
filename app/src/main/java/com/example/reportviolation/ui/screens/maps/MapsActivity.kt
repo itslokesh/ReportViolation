@@ -51,24 +51,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 val address = bundle.getString("address")
                 if (address != null) {
                     currentAddress = address
-                    locationText.text = address
                 }
                 Log.d("MapsActivity", "Received location: $initialLatitude, $initialLongitude")
                 Log.d("MapsActivity", "Received address: $address")
             }
 
             // Initialize views
-            locationText = findViewById(R.id.locationText)
-            if (locationText == null) {
-                Log.e("MapsActivity", "locationText not found")
-                setResult(RESULT_CANCELED)
-                finish()
-                return
-            }
-            
-            confirmBtn = findViewById(R.id.confirmBtn)
-            if (confirmBtn == null) {
-                Log.e("MapsActivity", "confirmBtn not found")
+            try {
+                locationText = findViewById(R.id.locationText)
+                Log.d("MapsActivity", "locationText found: $locationText")
+                
+                confirmBtn = findViewById(R.id.confirmBtn)
+                Log.d("MapsActivity", "confirmBtn found: $confirmBtn")
+                
+                if (locationText == null) {
+                    Log.e("MapsActivity", "locationText is null")
+                    setResult(RESULT_CANCELED)
+                    finish()
+                    return
+                }
+                
+                if (confirmBtn == null) {
+                    Log.e("MapsActivity", "confirmBtn is null")
+                    setResult(RESULT_CANCELED)
+                    finish()
+                    return
+                }
+                
+                Log.d("MapsActivity", "Views initialized successfully")
+                
+                // Set the address text after views are initialized
+                if (currentAddress != null) {
+                    locationText.text = currentAddress
+                }
+            } catch (e: Exception) {
+                Log.e("MapsActivity", "Error finding views: ${e.message}")
+                e.printStackTrace()
                 setResult(RESULT_CANCELED)
                 finish()
                 return
