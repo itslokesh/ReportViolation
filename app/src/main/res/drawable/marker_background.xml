@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Small circle at bottom to make it look like a pin -->
+    <item android:bottom="0dp" android:gravity="bottom|center">
+        <shape android:shape="oval">
+            <size android:width="8dp" android:height="8dp" />
+            <solid android:color="@color/red" />
+        </shape>
+    </item>
+</layer-list>

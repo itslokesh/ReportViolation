@@ -11,7 +11,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import android.location.Geocoder
 import java.io.IOException
@@ -21,7 +20,6 @@ import kotlinx.coroutines.*
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
-    private lateinit var marker: Marker
     private lateinit var locationText: TextView
     private lateinit var confirmBtn: Button
     
@@ -35,6 +33,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         
         Log.d("MapsActivity", "onCreate started")
+        Log.d("MapsActivity", "Intent: $intent")
+        Log.d("MapsActivity", "Intent extras: ${intent.extras}")
         
         try {
             setContentView(R.layout.activity_maps)
@@ -48,7 +48,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             intent.extras?.let { bundle ->
                 initialLatitude = bundle.getDouble("latitude", 11.0446)
                 initialLongitude = bundle.getDouble("longitude", 76.9948)
+                val address = bundle.getString("address")
+                if (address != null) {
+                    currentAddress = address
+                    locationText.text = address
+                }
                 Log.d("MapsActivity", "Received location: $initialLatitude, $initialLongitude")
+                Log.d("MapsActivity", "Received address: $address")
             }
 
             // Initialize views
@@ -89,6 +95,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             mapFragment.getMapAsync(this)
         } catch (e: Exception) {
             Log.e("MapsActivity", "Error in onCreate: ${e.message}")
+            e.printStackTrace()
             // Return error result
             setResult(RESULT_CANCELED)
             finish()
@@ -99,7 +106,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         try {
             mMap = googleMap
 
-            // Enable UI gestures
+            // Enable UI gestures for full-screen mode (keep current behavior)
             mMap.uiSettings.apply {
                 isZoomControlsEnabled = true
                 isMyLocationButtonEnabled = true
@@ -110,25 +117,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val initialLocation = LatLng(initialLatitude, initialLongitude)
             selectedLatLng = initialLocation
 
-            // Add fixed marker at center (not draggable and NOT updating position)
-            marker = mMap.addMarker(
-                MarkerOptions()
-                    .position(initialLocation)
-                    .title("Selected Location")
-                    .icon(com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_RED))
-                    .draggable(false) // Keep marker fixed at center
-            ) ?: throw IllegalStateException("Failed to create marker")
+            // No Google Maps marker needed - we'll use a fixed overlay instead
+            // This ensures the marker stays visually fixed in the center of the screen
 
             // Move camera to initial location
             mMap.moveCamera(com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(initialLocation, 17f))
 
             // Listen for camera movement to update location (but NOT marker position)
+            // This maintains synchronization with the embed map
             mMap.setOnCameraIdleListener {
                 val centerPosition = mMap.cameraPosition.target
                 selectedLatLng = centerPosition
                 // DO NOT update marker position - keep it static!
                 Log.d("MapsActivity", "Camera moved to: ${centerPosition.latitude}, ${centerPosition.longitude}")
-                Log.d("MapsActivity", "Marker position: ${marker.position.latitude}, ${marker.position.longitude}")
+                Log.d("MapsActivity", "Marker appears fixed at center")
                 getAddressFromLatLng(centerPosition)
             }
 

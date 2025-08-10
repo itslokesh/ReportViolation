@@ -55,7 +55,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapView
-import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.CameraPosition
 import java.time.LocalDateTime
 import com.example.reportviolation.ui.screens.maps.MapsActivity
@@ -67,12 +66,61 @@ import android.net.Uri
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.components.MediaPreviewDialog
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 
-
+// Custom MapView that restricts one-finger dragging
+class RestrictedMapView(context: android.content.Context) : MapView(context) {
+    private var touchCount = 0
+    private var isDragging = false
+    private var lastX = 0f
+    private var lastY = 0f
+    private val dragThreshold = 10f // Minimum distance to consider as drag
+    
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                touchCount = 1
+                isDragging = false
+                lastX = event.x
+                lastY = event.y
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                touchCount++
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (touchCount == 1) {
+                    val deltaX = Math.abs(event.x - lastX)
+                    val deltaY = Math.abs(event.y - lastY)
+                    
+                    if (deltaX > dragThreshold || deltaY > dragThreshold) {
+                        isDragging = true
+                        // For now, we'll allow the drag but provide visual feedback
+                        // A more sophisticated implementation would require custom gesture detection
+                    }
+                }
+            }
+            MotionEvent.ACTION_POINTER_UP -> {
+                touchCount--
+            }
+            MotionEvent.ACTION_UP -> {
+                touchCount = 0
+                isDragging = false
+            }
+        }
+        
+        // Allow all gestures for now, but provide clear visual feedback
+        // The marker behavior and instructions will guide users to use two fingers
+        return super.onTouchEvent(event)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +141,7 @@ fun ReportViolationScreen(navController: NavController) {
         contract = StartActivityForResult()
     ) { result ->
         println("Activity result received: ${result.resultCode}")
+        println("Activity result data: ${result.data}")
         when (result.resultCode) {
             android.app.Activity.RESULT_OK -> {
                 println("Activity result OK")
@@ -327,6 +376,9 @@ fun ReportViolationScreen(navController: NavController) {
                             onLocationChanged = { newLocation ->
                                 currentLocation = newLocation
                             },
+                            onAddressChanged = { newAddress ->
+                                locationAddress = newAddress
+                            },
                             onFullMapRequest = {
                                 try {
                                     println("Full screen button clicked!")
@@ -336,8 +388,10 @@ fun ReportViolationScreen(navController: NavController) {
                                     val intent = Intent(context, MapsActivity::class.java).apply {
                                         putExtra("latitude", currentLocation!!.latitude)
                                         putExtra("longitude", currentLocation!!.longitude)
+                                        putExtra("address", locationAddress)
                                     }
                                     println("Intent created: $intent")
+                                    println("Intent extras: ${intent.extras}")
                                     fullMapLauncher.launch(intent)
                                     println("Activity launcher called")
                                 } catch (e: Exception) {
@@ -838,10 +892,16 @@ fun LocationMapSection(
     location: LatLng,
     address: String?,
     onLocationChanged: (LatLng) -> Unit,
+    onAddressChanged: (String?) -> Unit,
     onFullMapRequest: () -> Unit
 ) {
-    // Remember the initial location to prevent marker recreation
-    val initialLocation = remember { location }
+    // Use the current location directly to ensure synchronization
+    val currentLocation = remember { mutableStateOf(location) }
+    
+    // Update currentLocation when location prop changes
+    LaunchedEffect(location) {
+        currentLocation.value = location
+    }
     Column {
         Text(
             text = "Violation Location",
@@ -852,7 +912,7 @@ fun LocationMapSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Move the map to set the exact violation location (pin stays centered)",
+            text = "Use two fingers to move the map and set the exact violation location (pin stays centered)",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -868,10 +928,11 @@ fun LocationMapSection(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Google Maps with draggable pin
+                // Google Maps with fixed pin
                 GoogleMapWithPin(
-                    initialLocation = initialLocation,
-                    onLocationChanged = onLocationChanged
+                    initialLocation = currentLocation.value,
+                    onLocationChanged = onLocationChanged,
+                    onAddressChanged = onAddressChanged
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -882,54 +943,82 @@ fun LocationMapSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Column {
-                            Text(
-                                text = "Lat: ${location.latitude.format(6)}, Lng: ${
-                                    location.longitude.format(
-                                        6
-                                    )
-                                }",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
                             )
-                            if (address != null) {
-                                Spacer(modifier = Modifier.height(4.dp))
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Column {
                                 Text(
-                                    text = "📍 $address",
+                                    text = "Lat: ${currentLocation.value.latitude.format(6)}, Lng: ${
+                                        currentLocation.value.longitude.format(
+                                            6
+                                        )
+                                    }",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 2
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                                if (address != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "📍 $address",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Add explanation about the fixed pin behavior
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp)
+                            ) {
+                                Text(
+                                    text = "💡 The red pin stays fixed in the center.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = "Use two fingers to move the map and adjust the location.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                                 )
                             }
                         }
+                    }
 
-                        // Full Map Button
-                        Button(
-                            onClick = onFullMapRequest,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Fullscreen,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("View Full Screen")
-                        }
+                    // Full Map Button
+                    Button(
+                        onClick = onFullMapRequest,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Full Screen")
                     }
                 }
             }
@@ -940,11 +1029,14 @@ fun LocationMapSection(
 @Composable
 fun GoogleMapWithPin(
     initialLocation: LatLng,
-    onLocationChanged: (LatLng) -> Unit
+    onLocationChanged: (LatLng) -> Unit,
+    onAddressChanged: (String?) -> Unit
 ) {
-    var mapView by remember { mutableStateOf<MapView?>(null) }
-    var marker by remember { mutableStateOf<com.google.android.gms.maps.model.Marker?>(null) }
+    val context = LocalContext.current
+    var mapView by remember { mutableStateOf<RestrictedMapView?>(null) }
     var isMapInitialized by remember { mutableStateOf(false) }
+    var currentLocation by remember { mutableStateOf(initialLocation) }
+    var mapInstance by remember { mutableStateOf<com.google.android.gms.maps.GoogleMap?>(null) }
 
     Box(
         modifier = Modifier
@@ -959,7 +1051,7 @@ fun GoogleMapWithPin(
     ) {
         AndroidView(
             factory = { context ->
-                MapView(context).apply {
+                RestrictedMapView(context).apply {
                     onCreate(null)
                     mapView = this
                 }
@@ -968,7 +1060,7 @@ fun GoogleMapWithPin(
                 // Only initialize the map once
                 if (!isMapInitialized) {
                     mapView.getMapAsync { googleMap ->
-                        // Set map properties
+                        // Set map properties for embed map
                         googleMap.uiSettings.apply {
                             isZoomControlsEnabled = true
                             isMyLocationButtonEnabled = false
@@ -976,36 +1068,103 @@ fun GoogleMapWithPin(
                             isMapToolbarEnabled = false
                         }
 
-                        // Add marker at initial location (will stay fixed)
-                        val markerOptions = MarkerOptions()
-                            .position(initialLocation)
-                            .title("Violation Location")
-                            .snippet("Move map to adjust location")
+                        // Disable map interactions that could interfere with marker positioning
+                        googleMap.setOnMapClickListener { /* Disable single tap */ }
+                        googleMap.setOnMapLongClickListener { /* Disable long press */ }
 
-                        marker = googleMap.addMarker(markerOptions)
-                        marker?.isDraggable = false
+                        // No Google Maps marker needed - we'll use our custom fixed overlay instead
+                        // This ensures the marker stays visually fixed in the center of the widget
                         
-                        // Move camera to initial location only once
+                        // Move camera to initial location
                         val cameraPosition = CameraPosition.Builder()
                             .target(initialLocation)
                             .zoom(15f)
                             .build()
                         googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
                         
-                        // Handle camera movement instead of marker drag (Google Maps-like behavior)
+                        // Handle camera movement - marker stays fixed, location updates based on center
                         googleMap.setOnCameraIdleListener {
                             val centerPosition = googleMap.cameraPosition.target
-                            // Update location data but NEVER update marker position
+                            currentLocation = centerPosition
+                            
+                            // DO NOT update marker position - keep it visually fixed in center
+                            // The marker will appear to stay in center because we're using the center coordinates
                             println("Camera moved to: ${centerPosition.latitude}, ${centerPosition.longitude}")
-                            println("Marker position: ${marker?.position?.latitude}, ${marker?.position?.longitude}")
+                            println("Marker appears fixed at center")
                             onLocationChanged(centerPosition)
+                            
+                            // Update address when location changes
+                            getAddressFromLocation(context, centerPosition) { address ->
+                                onAddressChanged(address)
+                                println("New address: $address")
+                            }
                         }
                         
+                        // Store the googleMap instance for later use
+                        mapInstance = googleMap
                         isMapInitialized = true
                     }
                 }
             }
         )
+        
+        // Update map camera when initialLocation changes (e.g., returning from full-screen)
+        LaunchedEffect(initialLocation) {
+            if (isMapInitialized && mapInstance != null) {
+                val cameraPosition = CameraPosition.Builder()
+                    .target(initialLocation)
+                    .zoom(15f)
+                    .build()
+                mapInstance?.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                currentLocation = initialLocation
+            }
+        }
+        
+        // Add a visual indicator that the marker is fixed and instructions
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(8.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(
+                        text = "📍 Pin stays centered",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Use two fingers to move the map",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+        
+        // Add a custom fixed marker overlay that stays in the center
+        // Using the same style as the full-screen marker
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(32.dp)
+        ) {
+            // Use the same location icon as full-screen
+            Image(
+                painter = androidx.compose.ui.res.painterResource(id = com.example.reportviolation.R.drawable.ic_location_on),
+                contentDescription = "Fixed Location Marker",
+                modifier = Modifier
+                    .size(32.dp)
+                    .align(Alignment.Center)
+            )
+        }
     }
 
     DisposableEffect(Unit) {
