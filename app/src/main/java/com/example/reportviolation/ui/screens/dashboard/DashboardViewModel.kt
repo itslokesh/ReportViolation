@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.example.reportviolation.R
+import com.example.reportviolation.data.model.ViolationType
 
 class DashboardViewModel : ViewModel() {
     
@@ -38,18 +39,15 @@ class DashboardViewModel : ViewModel() {
                 // Mock recent reports
                 val recentReports = listOf(
                     RecentReport(
-                        violationType = "Speed Violation",
-                        iconRes = R.drawable.ic_speed_violation,
+                        violationType = ViolationType.SPEED_VIOLATION,
                         date = "Dec 15"
                     ),
                     RecentReport(
-                        violationType = "Signal Jumping",
-                        iconRes = R.drawable.ic_signal_jumping,
+                        violationType = ViolationType.SIGNAL_JUMPING,
                         date = "Dec 14"
                     ),
                     RecentReport(
-                        violationType = "Wrong Side Driving",
-                        iconRes = R.drawable.ic_wrong_side_driving,
+                        violationType = ViolationType.WRONG_SIDE_DRIVING,
                         date = "Dec 12"
                     )
                 )
@@ -89,7 +87,6 @@ data class DashboardUiState(
 )
 
 data class RecentReport(
-    val violationType: String,
-    val iconRes: Int,
+    val violationType: ViolationType,
     val date: String
 ) 

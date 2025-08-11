@@ -9,6 +9,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
 import com.example.reportviolation.R
+import com.example.reportviolation.data.model.ViolationType
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
@@ -53,9 +54,9 @@ class DashboardViewModelTest {
             pendingReports = 4,
             totalPoints = 1250,
             recentReports = listOf(
-                RecentReport("Speed Violation", com.example.reportviolation.R.drawable.ic_speed_violation, "Dec 15"),
-                RecentReport("Signal Jumping", com.example.reportviolation.R.drawable.ic_signal_jumping, "Dec 14"),
-                RecentReport("Wrong Side Driving", com.example.reportviolation.R.drawable.ic_wrong_side_driving, "Dec 12")
+                RecentReport(ViolationType.SPEED_VIOLATION, "Dec 15"),
+                RecentReport(ViolationType.SIGNAL_JUMPING, "Dec 14"),
+                RecentReport(ViolationType.WRONG_SIDE_DRIVING, "Dec 12")
             ),
             error = null
         )

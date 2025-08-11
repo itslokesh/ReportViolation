@@ -13,6 +13,7 @@ import com.example.reportviolation.ui.screens.dashboard.DashboardScreen
 import com.example.reportviolation.ui.screens.map.MapScreen
 import com.example.reportviolation.ui.screens.report.ReportViolationScreen
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryScreen
+import com.example.reportviolation.ui.screens.reports.ReportDetailsScreen
 import com.example.reportviolation.ui.screens.rewards.RewardsScreen
 import com.example.reportviolation.ui.screens.splash.SplashScreen
 
@@ -63,6 +64,18 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
             ReportsHistoryScreen(navController)
         }
         
+        composable(
+            route = "${Screen.ReportDetails.route}/{reportId}",
+            arguments = listOf(
+                navArgument("reportId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val reportId = backStackEntry.arguments?.getLong("reportId") ?: 0L
+            ReportDetailsScreen(navController, reportId)
+        }
+        
         composable(Screen.Rewards.route) {
             RewardsScreen(navController)
         }
@@ -78,5 +91,6 @@ sealed class Screen(val route: String) {
     object Camera : Screen("camera")
     object Map : Screen("map")
     object ReportsHistory : Screen("reports_history")
+    object ReportDetails : Screen("report_details")
     object Rewards : Screen("rewards")
 } 

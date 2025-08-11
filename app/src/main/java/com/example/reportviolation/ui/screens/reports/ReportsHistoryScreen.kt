@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
+import com.example.reportviolation.ui.navigation.Screen
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.components.MediaPreviewDialog
+import com.example.reportviolation.ui.components.ViolationIcon
+import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 
 
 
@@ -178,7 +181,7 @@ fun ReportsHistoryScreen(navController: NavController) {
                     }
                     
                     items(uiState.reports) { report ->
-                        ReportCard(report = report)
+                        ReportCard(report = report, navController = navController)
                     }
                 }
             }
@@ -187,9 +190,13 @@ fun ReportsHistoryScreen(navController: NavController) {
 }
 
 @Composable
-fun ReportCard(report: ViolationReport) {
+fun ReportCard(report: ViolationReport, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("${Screen.ReportDetails.route}/${report.id}")
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
@@ -342,19 +349,32 @@ fun ReportCard(report: ViolationReport) {
             }
             
             // Violation type
-            Text(
-                text = "Violation:",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = report.violationType.displayName,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ViolationIcon(
+                    violationType = report.violationType,
+                    displayMode = ViolationIconDisplayMode.REPORT_DETAILS
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column {
+                    Text(
+                        text = "Violation:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = report.violationType.displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             

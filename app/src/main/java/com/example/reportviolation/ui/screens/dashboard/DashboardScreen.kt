@@ -1,6 +1,7 @@
 package com.example.reportviolation.ui.screens.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,8 @@ import com.example.reportviolation.ui.theme.DarkBlue
 import com.example.reportviolation.ui.theme.LightBlue
 import com.example.reportviolation.ui.theme.LightGray
 import com.example.reportviolation.ui.theme.MediumBlue
+import com.example.reportviolation.ui.components.ViolationIcon
+import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,7 +184,7 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
         // Recent Reports List
         if (uiState.recentReports.isNotEmpty()) {
             items(uiState.recentReports) { report ->
-                RecentReportItem(report = report)
+                RecentReportItem(report = report, navController = navController)
                 if (report != uiState.recentReports.last()) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -295,9 +298,14 @@ fun StatCard(
 }
 
 @Composable
-fun RecentReportItem(report: RecentReport) {
+fun RecentReportItem(report: RecentReport, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // For demo purposes, navigate to a sample report with ID 1
+                navController.navigate("${Screen.ReportDetails.route}/1")
+            },
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
@@ -311,11 +319,9 @@ fun RecentReportItem(report: RecentReport) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Violation Icon
-            Icon(
-                painter = painterResource(id = report.iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = DarkBlue
+            ViolationIcon(
+                violationType = report.violationType,
+                displayMode = ViolationIconDisplayMode.REPORT_DETAILS
             )
             
             Spacer(modifier = Modifier.width(16.dp))
@@ -323,7 +329,7 @@ fun RecentReportItem(report: RecentReport) {
             // Violation Details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = report.violationType,
+                    text = report.violationType.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black

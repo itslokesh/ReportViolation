@@ -71,6 +71,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.components.MediaPreviewDialog
+import com.example.reportviolation.ui.components.ViolationIcon
+import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -863,6 +865,12 @@ fun ViolationTypeDialog(
                             }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
+                        ViolationIcon(
+                            violationType = violationType,
+                            displayMode = ViolationIconDisplayMode.SELECTION,
+                            isSelected = selectedTypes.contains(violationType)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = violationType.displayName,
                             style = MaterialTheme.typography.bodyMedium
