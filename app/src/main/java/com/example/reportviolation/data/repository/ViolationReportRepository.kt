@@ -107,6 +107,10 @@ class ViolationReportRepository(
         return violationReportDao.getReportCountByReporter(reporterId)
     }
     
+    suspend fun getLatestReportsByReporter(reporterId: String, limit: Int): List<ViolationReport> {
+        return violationReportDao.getLatestReportsByReporter(reporterId, limit)
+    }
+    
     suspend fun getReportsByStatusAndReporter(reporterId: String, status: ReportStatus): Int {
         return violationReportDao.getReportCountByReporterAndStatus(reporterId, status)
     }

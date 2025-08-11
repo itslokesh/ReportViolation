@@ -28,6 +28,9 @@ interface ViolationReportDao {
     @Query("SELECT * FROM violation_reports WHERE reporterId = :reporterId ORDER BY createdAt DESC")
     fun getReportsByReporter(reporterId: String): Flow<List<ViolationReport>>
     
+    @Query("SELECT * FROM violation_reports WHERE reporterId = :reporterId ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun getLatestReportsByReporter(reporterId: String, limit: Int): List<ViolationReport>
+    
     @Query("SELECT * FROM violation_reports WHERE city = :city ORDER BY createdAt DESC")
     fun getReportsByCity(city: String): Flow<List<ViolationReport>>
     

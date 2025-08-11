@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Speedometer circle -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z"/>
+    
+    <!-- Speedometer needle -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M12,12l-2,6h4z"/>
+    
+    <!-- Speed lines -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M18,8l-1,2h2z"/>
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M20,10l-0.5,1h1z"/>
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M22,12l-0.3,0.6h0.6z"/>
+</vector>

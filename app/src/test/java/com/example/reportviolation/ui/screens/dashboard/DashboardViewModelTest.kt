@@ -8,6 +8,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import com.example.reportviolation.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
@@ -29,15 +30,17 @@ class DashboardViewModelTest {
     @Test
     fun `initial state should have default values`() = runTest {
         // When
+        testDispatcher.scheduler.advanceUntilIdle()
         val initialState = viewModel.uiState.first()
         
         // Then
         assertFalse("Initial loading should be false", initialState.isLoading)
-        assertEquals("Initial total reports should be 0", 0, initialState.totalReports)
-        assertEquals("Initial approved reports should be 0", 0, initialState.approvedReports)
-        assertEquals("Initial pending reports should be 0", 0, initialState.pendingReports)
-        assertEquals("Initial total points should be 0", 0, initialState.totalPoints)
+        assertEquals("Initial total reports should be 15", 15, initialState.totalReports)
+        assertEquals("Initial approved reports should be 8", 8, initialState.approvedReports)
+        assertEquals("Initial pending reports should be 4", 4, initialState.pendingReports)
+        assertEquals("Initial total points should be 1250", 1250, initialState.totalPoints)
         assertNull("Initial error should be null", initialState.error)
+        assertEquals("Initial recent reports should have 3 items", 3, initialState.recentReports.size)
     }
     
     @Test
@@ -45,10 +48,15 @@ class DashboardViewModelTest {
         // Given
         val expectedState = DashboardUiState(
             isLoading = false,
-            totalReports = 0,
-            approvedReports = 0,
-            pendingReports = 0,
-            totalPoints = 0,
+            totalReports = 15,
+            approvedReports = 8,
+            pendingReports = 4,
+            totalPoints = 1250,
+            recentReports = listOf(
+                RecentReport("Speed Violation", com.example.reportviolation.R.drawable.ic_speed_violation, "Dec 15"),
+                RecentReport("Signal Jumping", com.example.reportviolation.R.drawable.ic_signal_jumping, "Dec 14"),
+                RecentReport("Wrong Side Driving", com.example.reportviolation.R.drawable.ic_wrong_side_driving, "Dec 12")
+            ),
             error = null
         )
         
@@ -83,10 +91,11 @@ class DashboardViewModelTest {
         // Then
         assertNotNull("State should not be null", state)
         assertFalse("Loading should be false after initialization", state.isLoading)
-        assertEquals("Total reports should be 0", 0, state.totalReports)
-        assertEquals("Approved reports should be 0", 0, state.approvedReports)
-        assertEquals("Pending reports should be 0", 0, state.pendingReports)
-        assertEquals("Total points should be 0", 0, state.totalPoints)
+        assertEquals("Total reports should be 15", 15, state.totalReports)
+        assertEquals("Approved reports should be 8", 8, state.approvedReports)
+        assertEquals("Pending reports should be 4", 4, state.pendingReports)
+        assertEquals("Total points should be 1250", 1250, state.totalPoints)
+        assertEquals("Recent reports should have 3 items", 3, state.recentReports.size)
     }
     
     @Test

@@ -2,9 +2,9 @@ package com.example.reportviolation.ui.screens.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,209 +12,241 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.reportviolation.R
 import com.example.reportviolation.ui.navigation.Screen
+import com.example.reportviolation.ui.theme.DarkBlue
+import com.example.reportviolation.ui.theme.LightBlue
+import com.example.reportviolation.ui.theme.LightGray
+import com.example.reportviolation.ui.theme.MediumBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    navController: NavController,
-    viewModel: DashboardViewModel = remember { DashboardViewModel() }
+    navController: NavController
 ) {
+    // Create ViewModel - in a real app, this would be injected via Hilt or similar DI framework
+    val viewModel = remember { DashboardViewModel() }
     val uiState by viewModel.uiState.collectAsState()
-    val padding = PaddingValues(16.dp)
-
+    var selectedTab by remember { mutableStateOf(0) }
+    
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Traffic Violation Reporter") },
-                actions = {
-                    IconButton(onClick = { /* TODO: Settings */ }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
+        bottomBar = {
+            NavigationBar(
+                containerColor = Color.White
+            ) {
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            Icons.Default.Home, 
+                            contentDescription = "Home",
+                            tint = if (selectedTab == 0) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    label = { 
+                        Text(
+                            "Home", 
+                            color = if (selectedTab == 0) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 }
+                )
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            Icons.Default.Description, 
+                            contentDescription = "Reports",
+                            tint = if (selectedTab == 1) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    label = { 
+                        Text(
+                            "Reports", 
+                            color = if (selectedTab == 1) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 }
+                )
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            Icons.Default.Notifications, 
+                            contentDescription = "Notifications",
+                            tint = if (selectedTab == 2) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    label = { 
+                        Text(
+                            "Notifications", 
+                            color = if (selectedTab == 2) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 }
+                )
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            Icons.Default.Person, 
+                            contentDescription = "Profile",
+                            tint = if (selectedTab == 3) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    label = { 
+                        Text(
+                            "Profile", 
+                            color = if (selectedTab == 3) DarkBlue else Color.Gray
+                        ) 
+                    },
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 }
+                )
+            }
+        }
+    ) { padding ->
+        when (selectedTab) {
+            0 -> HomeTab(padding, navController, uiState)
+            1 -> ReportsTab(padding, navController)
+            2 -> NotificationsTab(padding)
+            3 -> ProfileTab(padding)
+        }
+    }
+}
+
+@Composable
+fun HomeTab(padding: PaddingValues, navController: NavController, uiState: DashboardUiState) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightGray)
+            .padding(padding)
+            .padding(16.dp)
+    ) {
+        // Header
+        item {
+            Text(
+                text = "Home",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Welcome Section
-            Card(
+        
+        // Summary Statistics Section
+        item {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    value = uiState.totalReports.toString(),
+                    label = "Violations\nReported",
+                    backgroundColor = DarkBlue,
+                    modifier = Modifier.weight(1f)
                 )
+                StatCard(
+                    value = uiState.approvedReports.toString(),
+                    label = "Resolved",
+                    backgroundColor = MediumBlue,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    value = uiState.pendingReports.toString(),
+                    label = "Pending",
+                    backgroundColor = LightBlue,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+        
+        // Recent Reports Section
+        item {
+            Text(
+                text = "Recent Reports",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+        
+        // Recent Reports List
+        if (uiState.recentReports.isNotEmpty()) {
+            items(uiState.recentReports) { report ->
+                RecentReportItem(report = report)
+                if (report != uiState.recentReports.last()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "No reports yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Start reporting violations to see them here",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+        
+        // Report Violation Button
+        item {
+            Button(
+                onClick = { navController.navigate(Screen.ReportViolation.route) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DarkBlue
+                ),
+                shape = RoundedCornerShape(40.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Security,
+                        imageVector = Icons.Default.CameraAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Welcome to Traffic Violation Reporter",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = "Help make our roads safer by reporting traffic violations",
+                        text = "Report\nViolation",
                         style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        fontWeight = FontWeight.Medium
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Quick Actions
-            Text(
-                text = "Quick Actions",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Report Violation Button
-            Button(
-                onClick = { navController.navigate(Screen.ReportViolation.route) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Report Violation")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Action Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ActionCard(
-                    title = "My Reports",
-                    subtitle = "${uiState.totalReports} reports",
-                    icon = Icons.Default.History,
-                    onClick = { navController.navigate(Screen.ReportsHistory.route) },
-                    modifier = Modifier.weight(1f)
-                )
-
-                ActionCard(
-                    title = "Rewards",
-                    subtitle = "${uiState.totalPoints} points",
-                    icon = Icons.Default.Star,
-                    onClick = { navController.navigate(Screen.Rewards.route) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Statistics Section
-            Text(
-                text = "Statistics",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Statistics Cards
-            StatisticsCard(
-                title = "Total Reports",
-                value = uiState.totalReports.toString(),
-                icon = Icons.Default.Assessment,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            StatisticsCard(
-                title = "Approved Reports",
-                value = uiState.approvedReports.toString(),
-                icon = Icons.Default.CheckCircle,
-                color = MaterialTheme.colorScheme.tertiary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            StatisticsCard(
-                title = "Pending Review",
-                value = uiState.pendingReports.toString(),
-                icon = Icons.Default.Schedule,
-                color = MaterialTheme.colorScheme.secondary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            StatisticsCard(
-                title = "Total Points",
-                value = uiState.totalPoints.toString(),
-                icon = Icons.Default.Star,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Recent Activity
-            Text(
-                text = "Recent Activity",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Placeholder for recent activity
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "No recent activity",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
         }
@@ -222,96 +254,232 @@ fun DashboardScreen(
 }
 
 @Composable
-fun ActionCard(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
+fun StatCard(
+    value: String,
+    label: String,
+    backgroundColor: Color,
     modifier: Modifier = Modifier
 ) {
     Card(
-        onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.height(120.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = backgroundColor
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
             
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
-            
-            Text(
-                text = subtitle,
+                text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
             )
         }
     }
 }
 
 @Composable
-fun StatisticsCard(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
-) {
+fun RecentReportItem(report: RecentReport) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            // Violation Icon
+            Icon(
+                painter = painterResource(id = report.iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = DarkBlue
+            )
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            Column {
+            // Violation Details
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    text = report.violationType,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
                 )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+            }
+            
+            // Date
+            Text(
+                text = report.date,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+@Composable
+fun ReportsTab(padding: PaddingValues, navController: NavController) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightGray)
+            .padding(padding)
+            .padding(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Reports",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
+        
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
                 )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Reports History",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "View all your submitted violation reports",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { navController.navigate(Screen.ReportsHistory.route) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View Reports")
+                    }
+                }
             }
         }
     }
 }
+
+@Composable
+fun NotificationsTab(padding: PaddingValues) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightGray)
+            .padding(padding)
+            .padding(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Notifications",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
+        
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "No notifications",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You're all caught up!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileTab(padding: PaddingValues) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightGray)
+            .padding(padding)
+            .padding(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
+        
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "User Profile",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Manage your account settings",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+
+
