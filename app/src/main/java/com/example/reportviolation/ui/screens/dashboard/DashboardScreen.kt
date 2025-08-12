@@ -1,6 +1,7 @@
 package com.example.reportviolation.ui.screens.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,12 +48,13 @@ import androidx.compose.ui.platform.LocalContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    navController: NavController
+    navController: NavController,
+    initialTab: Int = 0
 ) {
     // Create ViewModel - in a real app, this would be injected via Hilt or similar DI framework
     val viewModel = remember { DashboardViewModel() }
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableStateOf(initialTab) }
     
     // Note: Back navigation preservation will be handled by the navigation system
     // The selectedTab state will be maintained automatically
@@ -145,9 +147,6 @@ fun DashboardScreen(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun HomeTab(padding: PaddingValues, navController: NavController, uiState: DashboardUiState) {
-    val context = LocalContext.current
-    val viewModel = remember { DashboardViewModel() }
-    
     // Pull to refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoading,
@@ -419,6 +418,10 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     
+    // Temporary state for dialogs (only applied when user clicks Apply)
+    var tempSelectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
+    var tempSortOrder by remember { mutableStateOf("Newest First") }
+    
     val filters = listOf("All", "Submitted", "In Progress", "Resolved")
     val sortOptions = listOf("Newest First", "Oldest First")
     
@@ -449,48 +452,19 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
             modifier = Modifier.padding(16.dp)
         )
         
-        // Filter tabs and controls
+        // Filter tabs only
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Filter tabs
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                filters.forEach { filter ->
-                    FilterTab(
-                        text = filter,
-                        isSelected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter }
-                    )
-                }
-            }
-            
-            // Filter and Sort icons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Sort icon
-                IconButton(onClick = { showSortDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = "Sort",
-                        tint = DarkBlue
-                    )
-                }
-                
-                // Filter icon
-                IconButton(onClick = { showFilterDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filter",
-                        tint = DarkBlue
-                    )
-                }
+            filters.forEach { filter ->
+                FilterTab(
+                    text = filter,
+                    isSelected = selectedFilter == filter,
+                    onClick = { selectedFilter = filter }
+                )
             }
         }
         
@@ -618,7 +592,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                 } else {
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .weight(1f)
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(vertical = 16.dp)
@@ -631,6 +605,74 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                             )
                         }
                     }
+                }
+            }
+        }
+        
+        // Bottom controls - Sort and Filter buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Sort button
+            Button(
+                onClick = { 
+                    tempSortOrder = sortOrder // Initialize temp with current value
+                    showSortDialog = true 
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (sortOrder != "Newest First") DarkBlue else Color.White,
+                    contentColor = if (sortOrder != "Newest First") Color.White else DarkBlue
+                ),
+                border = if (sortOrder != "Newest First") null else BorderStroke(1.dp, DarkBlue)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Sort by",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            
+            // Filter button
+            Button(
+                onClick = { 
+                    tempSelectedViolationType = selectedViolationType // Initialize temp with current value
+                    showFilterDialog = true 
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedViolationType != null) DarkBlue else Color.White,
+                    contentColor = if (selectedViolationType != null) Color.White else DarkBlue
+                ),
+                border = if (selectedViolationType != null) null else BorderStroke(1.dp, DarkBlue)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Filter",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -647,11 +689,17 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
     // Filter dialog
     if (showFilterDialog) {
         FilterDialog(
-            selectedViolationType = selectedViolationType,
-            onViolationTypeSelected = { selectedViolationType = it },
-            onDismiss = { showFilterDialog = false },
+            selectedViolationType = tempSelectedViolationType,
+            onViolationTypeSelected = { tempSelectedViolationType = it },
+            onDismiss = { 
+                showFilterDialog = false
+                tempSelectedViolationType = selectedViolationType // Reset to current value
+            },
             onClearFilters = { 
-                selectedViolationType = null
+                tempSelectedViolationType = null
+            },
+            onApply = {
+                selectedViolationType = tempSelectedViolationType
                 showFilterDialog = false
             }
         )
@@ -660,10 +708,17 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
     // Sort dialog
     if (showSortDialog) {
         SortDialog(
-            currentSortOrder = sortOrder,
+            currentSortOrder = tempSortOrder,
             sortOptions = sortOptions,
-            onSortOrderSelected = { sortOrder = it },
-            onDismiss = { showSortDialog = false }
+            onSortOrderSelected = { tempSortOrder = it },
+            onDismiss = { 
+                showSortDialog = false
+                tempSortOrder = sortOrder // Reset to current value
+            },
+            onApply = {
+                sortOrder = tempSortOrder
+                showSortDialog = false
+            }
         )
     }
 }
@@ -876,7 +931,8 @@ fun FilterDialog(
     selectedViolationType: ViolationType?,
     onViolationTypeSelected: (ViolationType?) -> Unit,
     onDismiss: () -> Unit,
-    onClearFilters: () -> Unit
+    onClearFilters: () -> Unit,
+    onApply: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -947,7 +1003,7 @@ fun FilterDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onApply) {
                 Text("Apply")
             }
         },
@@ -964,7 +1020,8 @@ fun SortDialog(
     currentSortOrder: String,
     sortOptions: List<String>,
     onSortOrderSelected: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onApply: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1002,7 +1059,7 @@ fun SortDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onApply) {
                 Text("Apply")
             }
         }

@@ -40,15 +40,18 @@ import com.example.reportviolation.data.repository.ViolationReportRepository
 import com.example.reportviolation.data.local.AppDatabase
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
+import com.example.reportviolation.ui.navigation.Screen
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun ReportDetailsScreen(
     navController: NavController,
-    reportId: Long
+    reportId: Long,
+    sourceTab: String = "home"
 ) {
     val context = LocalContext.current
     val repository = remember {
@@ -79,6 +82,24 @@ fun ReportDetailsScreen(
         loadReport()
     }
     
+    // Handle system back gesture and back button
+    BackHandler {
+        // Debug: Print the sourceTab value
+        println("BackHandler triggered. sourceTab: $sourceTab")
+        
+        // Navigate back to the correct tab
+        if (sourceTab == "reports") {
+            println("BackHandler: Navigating to dashboard with reports tab")
+            // Navigate back to dashboard with reports tab selected
+            navController.navigate("${Screen.Dashboard.route}?initialTab=1") {
+                popUpTo(0) { inclusive = true }
+            }
+        } else {
+            println("BackHandler: Using default navigateUp")
+            navController.navigateUp()
+        }
+    }
+    
     // Pull to refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -96,7 +117,16 @@ fun ReportDetailsScreen(
             TopAppBar(
                 title = { Text("Report Details") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = { 
+                        // Trigger the same logic as BackHandler
+                        if (sourceTab == "reports") {
+                            navController.navigate("${Screen.Dashboard.route}?initialTab=1") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigateUp()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"

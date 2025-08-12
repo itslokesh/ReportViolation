@@ -35,8 +35,17 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
             RegistrationScreen(navController)
         }
         
-        composable(Screen.Dashboard.route) {
-            DashboardScreen(navController)
+        composable(
+            route = "${Screen.Dashboard.route}?initialTab={initialTab}",
+            arguments = listOf(
+                navArgument("initialTab") {
+                    type = NavType.IntType
+                    defaultValue = 0
+                }
+            )
+        ) { backStackEntry ->
+            val initialTab = backStackEntry.arguments?.getInt("initialTab") ?: 0
+            DashboardScreen(navController, initialTab)
         }
         
         composable(Screen.ReportViolation.route) {
@@ -65,15 +74,20 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
         }
         
         composable(
-            route = "${Screen.ReportDetails.route}/{reportId}",
+            route = "${Screen.ReportDetails.route}/{reportId}?sourceTab={sourceTab}",
             arguments = listOf(
                 navArgument("reportId") {
                     type = NavType.LongType
+                },
+                navArgument("sourceTab") {
+                    type = NavType.StringType
+                    defaultValue = "home"
                 }
             )
         ) { backStackEntry ->
             val reportId = backStackEntry.arguments?.getLong("reportId") ?: 0L
-            ReportDetailsScreen(navController, reportId)
+            val sourceTab = backStackEntry.arguments?.getString("sourceTab") ?: "home"
+            ReportDetailsScreen(navController, reportId, sourceTab)
         }
         
         composable(Screen.Rewards.route) {
