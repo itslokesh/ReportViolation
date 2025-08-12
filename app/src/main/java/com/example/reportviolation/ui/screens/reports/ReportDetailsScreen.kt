@@ -8,6 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -38,8 +42,9 @@ import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun ReportDetailsScreen(
     navController: NavController,
@@ -56,16 +61,35 @@ fun ReportDetailsScreen(
     
     var report by remember { mutableStateOf<ViolationReport?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
     
-    LaunchedEffect(reportId) {
+    // Function to load report data
+    suspend fun loadReport() {
         try {
             report = repository.getViolationReportById(reportId)
         } catch (e: Exception) {
             // Handle error
         } finally {
             isLoading = false
+            isRefreshing = false
         }
     }
+    
+    LaunchedEffect(reportId) {
+        loadReport()
+    }
+    
+    // Pull to refresh state
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            // Launch a coroutine to load the report
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                loadReport()
+            }
+        }
+    )
     
     Scaffold(
         topBar = {
@@ -85,31 +109,44 @@ fun ReportDetailsScreen(
             )
         }
     ) { padding ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            report?.let { violationReport ->
-                ReportDetailsContent(
-                    report = violationReport,
-                    modifier = Modifier.padding(padding)
-                )
-            } ?: run {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pullRefresh(pullRefreshState)
+        ) {
+            if (isLoading && !isRefreshing) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Report not found")
+                    CircularProgressIndicator()
+                }
+            } else {
+                report?.let { violationReport ->
+                    ReportDetailsContent(
+                        report = violationReport,
+                        modifier = Modifier.padding(padding)
+                    )
+                } ?: run {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Report not found")
+                    }
                 }
             }
+            
+            // Pull to refresh indicator
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -486,3 +523,4 @@ private fun formatDateTime(dateTime: java.time.LocalDateTime): String {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy, h:mm a", Locale.ENGLISH)
     return dateTime.format(formatter)
 }
+
