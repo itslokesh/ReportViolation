@@ -12,6 +12,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -139,7 +141,7 @@ fun DashboardScreen(
             0 -> HomeTab(padding, navController, uiState)
             1 -> ReportsTab(padding, navController)
             2 -> NotificationsTab(padding)
-            3 -> ProfileTab(padding)
+            3 -> ProfileTab(padding, navController)
         }
     }
 }
@@ -769,47 +771,437 @@ fun NotificationsTab(padding: PaddingValues) {
 }
 
 @Composable
-fun ProfileTab(padding: PaddingValues) {
+fun ProfileTab(padding: PaddingValues, navController: NavController) {
+    val viewModel = remember { com.example.reportviolation.ui.screens.settings.SettingsViewModel() }
+    val uiState by viewModel.uiState.collectAsState()
+    
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightGray)
+            .background(Color.White)
             .padding(padding)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        // Profile Header
         item {
-            Text(
-                text = "Profile",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 24.dp)
+            ProfileHeader(
+                userName = uiState.userName,
+                onProfileClick = { /* Navigate to profile edit */ }
             )
         }
         
+        // Language Section
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+            LanguageSection(
+                selectedLanguage = uiState.selectedLanguage,
+                onLanguageChange = { viewModel.updateLanguage(it) },
+                showLanguageDropdown = uiState.showLanguageDropdown,
+                onDropdownToggle = { viewModel.toggleLanguageDropdown() }
+            )
+        }
+        
+        // Notifications Section
+        item {
+            NotificationsSection(
+                governmentNotifications = uiState.governmentNotifications,
+                serviceUpdates = uiState.serviceUpdates,
+                offers = uiState.offers,
+                onGovernmentToggle = { viewModel.updateGovernmentNotifications(it) },
+                onServiceUpdatesToggle = { viewModel.updateServiceUpdates(it) },
+                onOffersToggle = { viewModel.updateOffers(it) }
+            )
+        }
+        
+        // Accessibility Section
+        item {
+            AccessibilitySection(
+                onTextSizeClick = { /* Navigate to text size settings */ },
+                onColorContrastClick = { /* Navigate to color contrast settings */ },
+                onScreenReaderClick = { /* Navigate to screen reader settings */ }
+            )
+        }
+        
+        // Reward Points Section
+        item {
+            RewardPointsSection(
+                points = uiState.rewardPoints
+            )
+        }
+        
+        // Logout Button
+        item {
+            LogoutButton(
+                onLogout = { 
+                    viewModel.logout()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Bottom spacing
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfileHeader(
+    userName: String,
+    onProfileClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onProfileClick() }
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(LightBlue),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile Avatar",
+                modifier = Modifier.size(32.dp),
+                tint = DarkBlue
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        // User Name
+        Text(
+            text = userName,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+fun LanguageSection(
+    selectedLanguage: String,
+    onLanguageChange: (String) -> Unit,
+    showLanguageDropdown: Boolean,
+    onDropdownToggle: () -> Unit
+) {
+    val languages = listOf("Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Kannada", "Gujarati", "Punjabi")
+    
+    Column {
+        // Section Title
+        Text(
+            text = "Language",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        // Language Selector
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column {
+                // Selected Language Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onDropdownToggle() }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "User Profile",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = selectedLanguage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Black
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Manage your account settings",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
+                    
+                    Icon(
+                        imageVector = if (showLanguageDropdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Toggle dropdown",
+                        tint = Color.Gray
                     )
+                }
+                
+                // Dropdown Options
+                if (showLanguageDropdown) {
+                    languages.forEach { language ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    onLanguageChange(language)
+                                    onDropdownToggle()
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = language,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Black
+                            )
+                            
+                            if (language == selectedLanguage) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = DarkBlue
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun NotificationsSection(
+    governmentNotifications: Boolean,
+    serviceUpdates: Boolean,
+    offers: Boolean,
+    onGovernmentToggle: (Boolean) -> Unit,
+    onServiceUpdatesToggle: (Boolean) -> Unit,
+    onOffersToggle: (Boolean) -> Unit
+) {
+    Column {
+        // Section Title
+        Text(
+            text = "Notifications",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column {
+                // Government Notifications
+                NotificationToggleItem(
+                    title = "Government",
+                    isEnabled = governmentNotifications,
+                    onToggle = onGovernmentToggle
+                )
+                
+                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                
+                // Service Updates
+                NotificationToggleItem(
+                    title = "Service Updates",
+                    isEnabled = serviceUpdates,
+                    onToggle = onServiceUpdatesToggle
+                )
+                
+                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                
+                // Offers
+                NotificationToggleItem(
+                    title = "Offers",
+                    isEnabled = offers,
+                    onToggle = onOffersToggle
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationToggleItem(
+    title: String,
+    isEnabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Black
+        )
+        
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = DarkBlue,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.LightGray
+            )
+        )
+    }
+}
+
+@Composable
+fun AccessibilitySection(
+    onTextSizeClick: () -> Unit,
+    onColorContrastClick: () -> Unit,
+    onScreenReaderClick: () -> Unit
+) {
+    Column {
+        // Section Title
+        Text(
+            text = "Accessibility",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column {
+                // Text Size
+                AccessibilityItem(
+                    title = "Aa Text size",
+                    icon = Icons.Default.TextFields,
+                    onClick = onTextSizeClick
+                )
+                
+                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                
+                // Color Contrast
+                AccessibilityItem(
+                    title = "Color contrast",
+                    icon = Icons.Default.Contrast,
+                    onClick = onColorContrastClick
+                )
+                
+                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                
+                // Screen Reader
+                AccessibilityItem(
+                    title = "Screen reader",
+                    icon = Icons.Default.VolumeUp,
+                    onClick = onScreenReaderClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccessibilityItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Black
+        )
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = "Navigate",
+            tint = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun RewardPointsSection(
+    points: String
+) {
+    Column {
+        // Section Title
+        Text(
+            text = "Reward Points",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = points,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkBlue
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LogoutButton(
+    onLogout: () -> Unit
+) {
+    Button(
+        onClick = onLogout,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DarkBlue
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = "Logout",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.White
+        )
     }
 }
 
