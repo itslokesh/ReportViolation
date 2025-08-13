@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">மீறல் அறிக்கை</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">அமைப்புகள்</string>
+    <string name="settings_language">மொழி</string>
+    <string name="settings_notifications">அறிவிப்புகள்</string>
+    <string name="settings_accessibility">அணுகல்</string>
+    <string name="settings_reward_points">வெகுமதி புள்ளிகள்</string>
+    <string name="settings_logout">வெளியேறு</string>
+    <string name="settings_government_notifications">அரசு</string>
+    <string name="settings_service_updates">சேவை புதுப்பிப்புகள்</string>
+    <string name="settings_offers">சலுகைகள்</string>
+    <string name="settings_text_size">உரை அளவு</string>
+    <string name="settings_color_contrast">வண்ண மாறுபாடு</string>
+    <string name="settings_screen_reader">திரை வாசிப்பான்</string>
+    <string name="settings_language_english">ஆங்கிலம்</string>
+    <string name="settings_language_tamil">தமிழ்</string>
+    
+    <!-- Common -->
+    <string name="home">முகப்பு</string>
+    <string name="reports">அறிக்கைகள்</string>
+    <string name="notifications">அறிவிப்புகள்</string>
+    <string name="profile">சுயவிவரம்</string>
+    <string name="back">பின்செல்</string>
+    <string name="next">அடுத்து</string>
+    <string name="submit">சமர்ப்பி</string>
+    <string name="cancel">ரத்து</string>
+    <string name="save">சேமி</string>
+    <string name="edit">திருத்து</string>
+    <string name="delete">அழி</string>
+    <string name="loading">ஏற்றுகிறது...</string>
+    <string name="error">பிழை</string>
+    <string name="success">வெற்றி</string>
+    
+    <!-- Auth -->
+    <string name="login">உள்நுழைவு</string>
+    <string name="register">பதிவு</string>
+    <string name="email">மின்னஞ்சல்</string>
+    <string name="password">கடவுச்சொல்</string>
+    <string name="phone_number">தொலைபேசி எண்</string>
+    <string name="forgot_password">கடவுச்சொல்லை மறந்துவிட்டீர்களா?</string>
+    
+    <!-- Violation Types -->
+    <string name="overspeeding">வேக மீறல்</string>
+    <string name="signal_violation">சிக்னல் மீறல்</string>
+    <string name="wrong_side_driving">தவறான பக்க ஓட்டம்</string>
+    <string name="lane_cutting">வரிசை வெட்டுதல்</string>
+    <string name="mobile_phone_usage">மொபைல் பயன்பாடு</string>
+    <string name="no_parking_zone">வாகன நிறுத்தத் தடை</string>
+    <string name="helmet_seatbelt_violation">ஹெல்மெட்/பாதுகாப்பு வார்ப்பு மீறல்</string>
+    <string name="drunk_driving_suspected">குடிபோதையில் ஓட்டுதல் சந்தேகம்</string>
+    <string name="others">மற்றவை</string>
+    
+    <!-- Report Status -->
+    <string name="status_submitted">சமர்ப்பிக்கப்பட்டது</string>
+    <string name="status_in_progress">முன்னேற்றத்தில்</string>
+    <string name="status_resolved">தீர்க்கப்பட்டது</string>
+    <string name="status_rejected">நிராகரிக்கப்பட்டது</string>
+    
+    <!-- Camera -->
+    <string name="camera_photo_mode">புகைப்பட பயன்முறை</string>
+    <string name="camera_video_mode">வீடியோ பயன்முறை</string>
+    <string name="camera_capture">பிடி</string>
+    <string name="camera_record">பதிவு</string>
+    <string name="camera_stop">நிறுத்து</string>
+    <string name="camera_retake">மீண்டும் எடு</string>
+    
+    <!-- Map -->
+    <string name="map_select_location">இடத்தைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="map_current_location">தற்போதைய இடம்</string>
+    <string name="map_location_permission_required">இட அனுமதி தேவை</string>
+    
+    <!-- Rewards -->
+    <string name="rewards_title">வெகுமதிகள்</string>
+    <string name="rewards_points_earned">பெறப்பட்ட புள்ளிகள்</string>
+    <string name="rewards_points_redeemed">பயன்படுத்தப்பட்ட புள்ளிகள்</string>
+    <string name="rewards_total_points">மொத்த புள்ளிகள்</string>
+    
+    <!-- Report Details -->
+    <string name="report_details_title">அறிக்கை விவரங்கள்</string>
+    <string name="report_case_number">வழக்கு எண்</string>
+    <string name="report_date">தேதி</string>
+    <string name="report_time">நேரம்</string>
+    <string name="report_location">இடம்</string>
+    <string name="report_violation_type">மீறல் வகை</string>
+    <string name="report_description">விளக்கம்</string>
+    <string name="report_evidence">சான்று</string>
+    <string name="report_status">நிலை</string>
+    
+    <!-- Permissions -->
+    <string name="permission_camera_required">கேமரா அனுமதி தேவை</string>
+    <string name="permission_location_required">இட அனுமதி தேவை</string>
+    <string name="permission_storage_required">சேமிப்பு அனுமதி தேவை</string>
+    <string name="permission_microphone_required">மைக்ரோஃபோன் அனுமதி தேவை</string>
+    
+    <!-- Error Messages -->
+    <string name="error_network">பிணைய பிழை</string>
+    <string name="error_server">சர்வர் பிழை</string>
+    <string name="error_unknown">அறியப்படாத பிழை</string>
+    <string name="error_invalid_input">தவறான உள்ளீடு</string>
+    <string name="error_file_too_large">கோப்பு மிகவும் பெரியது</string>
+    <string name="error_invalid_format">தவறான வடிவம்</string>
+    
+    <!-- Language Change Dialog -->
+    <string name="language_change_confirmation_title">மொழியை மாற்று</string>
+    <string name="language_change_confirmation_message_english">Are you sure you want to change the language from %1$s to %2$s?</string>
+    <string name="language_change_confirmation_message_tamil">நீங்கள் மொழியை %1$s இலிருந்து %2$s க்கு மாற்ற விரும்புகிறீர்களா?</string>
+    <string name="language_change_confirm">மாற்று</string>
+    
+    <!-- Page Headers and Titles -->
+    <string name="traffic_violation_reports">சாலை மீறல் அறிக்கைகள்</string>
+    <string name="recent_reports">சமீபத்திய அறிக்கைகள்</string>
+    <string name="report_violation">மீறலை அறிக்கை செய்</string>
+    <string name="report_violation_title">சாலை மீறலை அறிக்கை செய்</string>
+    <string name="select_violation_type">மீறல் வகையைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="add_description">விளக்கத்தைச் சேர்க்கவும்</string>
+    <string name="description_placeholder">நீங்கள் கண்டதை விவரிக்கவும்...</string>
+    <string name="vehicle_number">வாகன எண்</string>
+    <string name="vehicle_number_placeholder">வாகன எண்ணை உள்ளிடவும்</string>
+    <string name="location_details">இட விவரங்கள்</string>
+    <string name="location_placeholder">இட விவரங்களை உள்ளிடவும்</string>
+    <string name="capture_evidence">சான்றைப் பிடிக்கவும்</string>
+    <string name="photo">புகைப்படம்</string>
+    <string name="video">வீடியோ</string>
+    <string name="submit_report">அறிக்கையை சமர்ப்பிக்கவும்</string>
+    <string name="violations_reported">மீறல்கள்\nஅறிக்கை</string>
+    <string name="reports_approved">ஒப்புக்\nகொண்டது</string>
+    <string name="accuracy_rate">துல்லியம்\nவிகிதம்</string>
+    <string name="total_reports">மொத்த\nஅறிக்கைகள்</string>
+    <string name="view_all_reports">அனைத்து அறிக்கைகளையும் காண்க</string>
+    <string name="quick_report">விரைவு அறிக்கை</string>
+    <string name="filter_all">அனைத்தும்</string>
+    <string name="filter_submitted">சமர்ப்பிக்கப்பட்டது</string>
+    <string name="filter_in_progress">முன்னேற்றத்தில்</string>
+    <string name="filter_resolved">தீர்க்கப்பட்டது</string>
+    <string name="sort_newest_first">புதியது முதலில்</string>
+    <string name="sort_oldest_first">பழையது முதலில்</string>
+    <string name="error_loading_reports">அறிக்கைகளை ஏற்றுவதில் பிழை</string>
+    <string name="no_reports_found">அறிக்கைகள் எதுவும் கிடைக்கவில்லை</string>
+    <string name="no_notifications">அறிவிப்புகள் எதுவும் இல்லை</string>
+    <string name="pull_to_refresh">புதுப்பிக்க இழுக்கவும்</string>
+    
+    <!-- Report Details -->
+    <string name="report_details">அறிக்கை விவரங்கள்</string>
+    <string name="case_number">வழக்கு எண்</string>
+    <string name="date_time">தேதி &amp; நேரம்</string>
+    <string name="location">இடம்</string>
+    <string name="violation_types">மீறல் வகைகள்</string>
+    <string name="description">விளக்கம்</string>
+    <string name="evidence">சான்று</string>
+    <string name="status">நிலை</string>
+    <string name="no_description">விளக்கம் எதுவும் வழங்கப்படவில்லை</string>
+    <string name="no_evidence">சான்று எதுவும் வழங்கப்படவில்லை</string>
+    
+    <!-- Sort and Filter -->
+    <string name="sort_by">வரிசைப்படுத்து</string>
+    <string name="filter_by">வடிப்பு</string>
+    
+    <!-- Report Violation Form -->
+    <string name="violation_types_header">மீறல் வகைகள்</string>
+    <string name="description_header">விளக்கம்</string>
+    <string name="vehicle_details">வாகன விவரங்கள்</string>
+    <string name="location_header">இடம்</string>
+    <string name="evidence_header">சான்று</string>
+    <string name="requirements">தேவைகள்</string>
+    <string name="required_field">தேவையான புலம்</string>
+    <string name="optional_field">விருப்ப புலம்</string>
+    <string name="take_photo_video">புகைப்படம்/வீடியோ எடுக்கவும்</string>
+    <string name="current_location">தற்போதைய இடம்</string>
+    <string name="manual_location">கைமுறை இடம்</string>
+    <string name="enter_location">இடத்தை கைமுறையாக உள்ளிடவும்</string>
+    <string name="capture_media">ஊடகத்தைப் பிடிக்கவும்</string>
+    <string name="remove">அகற்று</string>
+    <string name="play">இயக்கு</string>
+    <string name="violation_selected">மீறல்(கள்) தேர்ந்தெடுக்கப்பட்டது</string>
+    <string name="no_violation_selected">மீறல் எதுவும் தேர்ந்தெடுக்கப்படவில்லை</string>
+    
+    <!-- Recent Reports -->
+    <string name="no_reports_yet">இன்னும் அறிக்கைகள் இல்லை</string>
+    <string name="start_reporting">அறிக்கைகளைக் காண மீறல்களை அறிக்கை செய்யத் தொடங்கவும்</string>
+    <string name="report_violation_button">மீறலை அறிக்கை செய்</string>
+    <string name="apply">பயன்படுத்து</string>
+    <string name="clear_all">அனைத்தையும் அழி</string>
+    <string name="all_violation_types">அனைத்து மீறல் வகைகளும்</string>
+    <string name="retry">மீண்டும் முயற்சிக்கவும்</string>
+    
+    <!-- Language Names -->
+    <string name="language_english">ஆங்கிலம்</string>
+    <string name="language_tamil">தமிழ்</string>
+    
+    <!-- Timeline Status -->
+    <string name="status_received">பெறப்பட்டது</string>
+    <string name="status_submitted_timeline">சமர்ப்பிக்கப்பட்டது</string>
+    <string name="status_in_review">மதிப்பாய்வில்</string>
+    <string name="status_resolved_timeline">தீர்க்கப்பட்டது</string>
+    <string name="status_pending">நிலுவையில்</string>
+    
+    <!-- Report Violation Screen -->
+    <string name="location_detected">இருப்பிடம் கண்டறியப்பட்டது</string>
+    <string name="getting_location">இருப்பிடம் பெறப்படுகிறது...</string>
+    <string name="refresh_location">இருப்பிடத்தைப் புதுப்பிக்கவும்</string>
+    <string name="location_not_available">இருப்பிடம் கிடைக்கவில்லை</string>
+    <string name="grant_location_permission">வரைபடத்தைக் காண இருப்பிட அனுமதியை வழங்கவும்</string>
+    <string name="location_access_required">இருப்பிட அணுகல் தேவை</string>
+    <string name="location_permission_message">மீறல் அறிக்கைகளை GPS ஆயங்களுடன் தானாக குறிக்க நாங்கள் உங்கள் இருப்பிடத்தை வேண்டுகிறோம்</string>
+    <string name="allow_location_access">இருப்பிட அணுகலை அனுமதிக்கவும்</string>
+    <string name="record_video">வீடியோ பதிவு</string>
+    <string name="remove_media">அகற்று</string>
+    <string name="photo_thumbnail">புகைப்பட சிறுஉருவம்</string>
+    <string name="video_media">வீடியோ</string>
+    <string name="play_video">வீடியோ இயக்கு</string>
+    <string name="violation_types_section">மீறல் வகைகள்</string>
+    <string name="confirm_selection">உறுதிப்படுத்து</string>
+    <string name="cancel_selection">ரத்து</string>
+    <string name="violation_location">மீறல் இருப்பிடம்</string>
+    <string name="full_screen">முழு திரை</string>
+    <string name="use_two_fingers">வரைபடத்தை நகர்த்த இரண்டு விரல்களைப் பயன்படுத்தவும்</string>
+    <string name="fixed_location_marker">நிலையான இருப்பிட குறி</string>
+    <string name="unknown_area">தெரியாத பகுதி</string>
+    <string name="unknown_city">தெரியாத நகரம்</string>
+    <string name="submit_button_requirements">சமர்ப்பிப்பு பொத்தான் தேவைகள்:</string>
+    <string name="red_pin_fixed_center">💡 சிவப்பு ஊசி மையத்தில் நிலையாக இருக்கும்.</string>
+    <string name="use_two_fingers_set_location">வரைபடத்தை நகர்த்தி சரியான மீறல் இருப்பிடத்தை அமைக்க இரண்டு விரல்களைப் பயன்படுத்தவும் (ஊசி மையத்தில் இருக்கும்)</string>
+    <string name="use_two_fingers_adjust_location">வரைபடத்தை நகர்த்தி இருப்பிடத்தை சரிசெய்ய இரண்டு விரல்களைப் பயன்படுத்தவும்.</string>
+    <string name="latitude_longitude_format">அட்சரேகை: %1$.6f, தீர்க்கரேகை: %2$.6f</string>
+    <string name="confirm_and_proceed">உறுதிப்படுத்தி தொடரவும்</string>
+    <string name="select_location">இடத்தைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="selected_location_address">தேர்ந்தெடுக்கப்பட்ட இட முகவரி</string>
+    <string name="fetching_address">முகவரி பெறப்படுகிறது...</string>
+    <string name="unknown_location">தெரியாத இடம்</string>
+    <string name="error_fetching_address">முகவரியைப் பெறுவதில் பிழை</string>
+</resources>

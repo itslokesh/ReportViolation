@@ -10,10 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.example.reportviolation.data.model.ViolationType
+import com.example.reportviolation.utils.getLocalizedViolationTypeName
 
 @Composable
 fun ViolationIconDemo() {
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +104,7 @@ fun ViolationIconDemo() {
                         Spacer(modifier = Modifier.width(12.dp))
                         
                         Text(
-                            text = violationType.displayName,
+                            text = getLocalizedViolationTypeName(violationType, context),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -169,7 +172,7 @@ fun ViolationIconDemo() {
                         Spacer(modifier = Modifier.width(12.dp))
                         
                         Text(
-                            text = violationType.displayName,
+                            text = getLocalizedViolationTypeName(violationType, context),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

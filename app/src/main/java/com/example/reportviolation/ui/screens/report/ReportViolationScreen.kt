@@ -67,12 +67,15 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import com.example.reportviolation.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.components.MediaPreviewDialog
 import com.example.reportviolation.ui.components.ViolationIcon
 import com.example.reportviolation.ui.components.ViolationIconDisplayMode
+import com.example.reportviolation.utils.getLocalizedViolationTypeName
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -170,6 +173,10 @@ fun ReportViolationScreen(navController: NavController) {
     }
 
     // Check initial permission status and get location if already granted
+    // Get localized strings
+    val unknownArea = stringResource(R.string.unknown_area)
+    val unknownCity = stringResource(R.string.unknown_city)
+    
     LaunchedEffect(Unit) {
         hasLocationPermission = ContextCompat.checkSelfPermission(
             context,
@@ -182,9 +189,13 @@ fun ReportViolationScreen(navController: NavController) {
             getCurrentLocation(context) { location ->
                 currentLocation = location
                 if (location != null) {
-                    getAddressFromLocation(context, location) { address ->
-                        locationAddress = address
-                    }
+                    getAddressFromLocation(
+                        context, 
+                        location, 
+                        { address -> locationAddress = address },
+                        unknownArea,
+                        unknownCity
+                    )
                 }
                 isLocationLoading = false
             }
@@ -209,9 +220,13 @@ fun ReportViolationScreen(navController: NavController) {
             getCurrentLocation(context) { location ->
                 currentLocation = location
                 if (location != null) {
-                    getAddressFromLocation(context, location) { address ->
-                        locationAddress = address
-                    }
+                    getAddressFromLocation(
+                        context, 
+                        location, 
+                        { address -> locationAddress = address },
+                        unknownArea,
+                        unknownCity
+                    )
                 }
                 isLocationLoading = false
             }
@@ -231,12 +246,12 @@ fun ReportViolationScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Report Violation") },
+                title = { Text(stringResource(R.string.report_violation_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }
@@ -277,7 +292,7 @@ fun ReportViolationScreen(navController: NavController) {
                         Spacer(modifier = Modifier.width(4.dp))
                                                                           Column {
                               Text(
-                                  text = if (currentLocation != null) "Location detected" else "Getting location...",
+                                  text = if (currentLocation != null) stringResource(R.string.location_detected) else stringResource(R.string.getting_location),
                                   style = MaterialTheme.typography.bodySmall,
                                   color = MaterialTheme.colorScheme.primary
                               )
@@ -305,9 +320,13 @@ fun ReportViolationScreen(navController: NavController) {
                             getCurrentLocation(context) { location ->
                                 currentLocation = location
                                 if (location != null) {
-                                    getAddressFromLocation(context, location) { address ->
-                                        locationAddress = address
-                                    }
+                                    getAddressFromLocation(
+                                        context, 
+                                        location, 
+                                        { address -> locationAddress = address },
+                                        unknownArea,
+                                        unknownCity
+                                    )
                                 }
                                 isLocationLoading = false
                             }
@@ -322,7 +341,7 @@ fun ReportViolationScreen(navController: NavController) {
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh location",
+                                contentDescription = stringResource(R.string.refresh_location),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -401,7 +420,9 @@ fun ReportViolationScreen(navController: NavController) {
                                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                                     e.printStackTrace()
                                 }
-                            }
+                            },
+                            unknownArea = unknownArea,
+                            unknownCity = unknownCity
                         )
                         
                         Spacer(modifier = Modifier.height(24.dp))
@@ -418,12 +439,12 @@ fun ReportViolationScreen(navController: NavController) {
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "Location Not Available",
+                                    text = stringResource(R.string.location_not_available),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                                 Text(
-                                    text = "Please grant location permission to see the map",
+                                    text = stringResource(R.string.grant_location_permission),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -439,14 +460,15 @@ fun ReportViolationScreen(navController: NavController) {
                         onClick = { 
                             // Submit report with all details
                             coroutineScope.launch {
-                                                                 submitReport(
-                                     mediaUri = selectedMediaUri!!,
-                                     violationTypes = selectedViolationTypes,
-                                     location = currentLocation!!,
-                                     address = locationAddress,
-                                     navController = navController,
-                                     context = context
-                                 )
+                                                                                             submitReport(
+                                mediaUri = selectedMediaUri!!,
+                                violationTypes = selectedViolationTypes,
+                                location = currentLocation!!,
+                                address = locationAddress,
+                                navController = navController,
+                                context = context,
+                                unknownCity = unknownCity
+                            )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -454,7 +476,7 @@ fun ReportViolationScreen(navController: NavController) {
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Submit Report")
+                        Text(stringResource(R.string.submit_report))
                     }
                     
                     // Debug info for submit button
@@ -470,22 +492,22 @@ fun ReportViolationScreen(navController: NavController) {
                                 modifier = Modifier.padding(12.dp)
                             ) {
                                 Text(
-                                    text = "Submit Button Requirements:",
+                                    text = stringResource(R.string.submit_button_requirements),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    text = "• Media: ${if (selectedMediaUri != null) "✓" else "✗"}",
+                                    text = "• ${stringResource(R.string.evidence)}: ${if (selectedMediaUri != null) "✓" else "✗"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    text = "• Violation Types: ${if (selectedViolationTypes.isNotEmpty()) "✓" else "✗"}",
+                                    text = "• ${stringResource(R.string.violation_types)}: ${if (selectedViolationTypes.isNotEmpty()) "✓" else "✗"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    text = "• Location: ${if (currentLocation != null) "✓" else "✗"}",
+                                    text = "• ${stringResource(R.string.location)}: ${if (currentLocation != null) "✓" else "✗"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
@@ -535,7 +557,7 @@ fun LocationPermissionRequest(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "Location Access Required",
+                text = stringResource(R.string.location_access_required),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -545,7 +567,7 @@ fun LocationPermissionRequest(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "We need your location to automatically tag violation reports with GPS coordinates",
+                text = stringResource(R.string.location_permission_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
@@ -560,7 +582,7 @@ fun LocationPermissionRequest(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Allow Location Access")
+                Text(stringResource(R.string.allow_location_access))
             }
         }
     }
@@ -574,7 +596,7 @@ fun MediaCaptureSection(
 ) {
     Column {
         Text(
-            text = "Capture Evidence",
+            text = stringResource(R.string.capture_evidence),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -605,7 +627,7 @@ fun MediaCaptureSection(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Take Photo",
+                                                    text = stringResource(R.string.photo),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -633,7 +655,7 @@ fun MediaCaptureSection(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Record Video",
+                        text = stringResource(R.string.record_video),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -676,7 +698,7 @@ fun MediaPreviewSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (isVideo) "Captured Video" else "Captured Photo",
+                                            text = if (isVideo) stringResource(R.string.video) else stringResource(R.string.photo),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -684,7 +706,7 @@ fun MediaPreviewSection(
                 IconButton(onClick = onRemove) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Remove",
+                        contentDescription = stringResource(R.string.remove_media),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -713,7 +735,7 @@ fun MediaPreviewSection(
                             painter = rememberAsyncImagePainter(
                                 model = mediaUri
                             ),
-                            contentDescription = "Photo thumbnail",
+                            contentDescription = stringResource(R.string.photo_thumbnail),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
@@ -732,13 +754,13 @@ fun MediaPreviewSection(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Videocam,
-                                    contentDescription = "Video",
+                                    contentDescription = stringResource(R.string.video_media),
                                     modifier = Modifier.size(48.dp),
                                     tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Video",
+                                    text = stringResource(R.string.video_media),
                                     color = Color.White,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
@@ -754,7 +776,7 @@ fun MediaPreviewSection(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play video",
+                                contentDescription = stringResource(R.string.play_video),
                                 modifier = Modifier.size(48.dp),
                                 tint = Color.White
                             )
@@ -772,9 +794,10 @@ fun ViolationTypeSection(
     onTypeSelected: (Set<ViolationType>) -> Unit,
     onShowDialog: () -> Unit
 ) {
+    val context = LocalContext.current
     Column {
         Text(
-            text = "Violation Types",
+            text = stringResource(R.string.violation_types_section),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -804,7 +827,7 @@ fun ViolationTypeSection(
                     
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (selectedTypes.isEmpty()) "Select Violation Types" else "${selectedTypes.size} violation(s) selected",
+                            text = if (selectedTypes.isEmpty()) stringResource(R.string.select_violation_type) else "${selectedTypes.size} ${stringResource(R.string.violation_selected)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium,
                             color = if (selectedTypes.isNotEmpty()) 
@@ -814,7 +837,7 @@ fun ViolationTypeSection(
                         )
                         if (selectedTypes.isNotEmpty()) {
                             Text(
-                                text = selectedTypes.joinToString(", ") { it.displayName },
+                                text = selectedTypes.joinToString(", ") { getLocalizedViolationTypeName(it, context) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                 maxLines = 2
@@ -838,12 +861,13 @@ fun ViolationTypeDialog(
     onDismiss: () -> Unit,
     onTypeSelected: (Set<ViolationType>) -> Unit
 ) {
+    val context = LocalContext.current
     var selectedTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Select Violation Types")
+                                    Text(stringResource(R.string.select_violation_type))
         },
         text = {
             Column {
@@ -872,7 +896,7 @@ fun ViolationTypeDialog(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = violationType.displayName,
+                            text = getLocalizedViolationTypeName(violationType, context),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -884,12 +908,12 @@ fun ViolationTypeDialog(
                 onClick = { onTypeSelected(selectedTypes) },
                 enabled = selectedTypes.isNotEmpty()
             ) {
-                Text("Confirm")
+                Text(stringResource(R.string.confirm_selection))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel_selection))
             }
         }
     )
@@ -901,7 +925,9 @@ fun LocationMapSection(
     address: String?,
     onLocationChanged: (LatLng) -> Unit,
     onAddressChanged: (String?) -> Unit,
-    onFullMapRequest: () -> Unit
+    onFullMapRequest: () -> Unit,
+    unknownArea: String,
+    unknownCity: String
 ) {
     // Use the current location directly to ensure synchronization
     val currentLocation = remember { mutableStateOf(location) }
@@ -912,7 +938,7 @@ fun LocationMapSection(
     }
     Column {
         Text(
-            text = "Violation Location",
+            text = stringResource(R.string.violation_location),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -920,7 +946,7 @@ fun LocationMapSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Use two fingers to move the map and set the exact violation location (pin stays centered)",
+                                text = stringResource(R.string.use_two_fingers_set_location),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -940,7 +966,9 @@ fun LocationMapSection(
                 GoogleMapWithPin(
                     initialLocation = currentLocation.value,
                     onLocationChanged = onLocationChanged,
-                    onAddressChanged = onAddressChanged
+                    onAddressChanged = onAddressChanged,
+                    unknownArea = unknownArea,
+                    unknownCity = unknownCity
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -968,11 +996,11 @@ fun LocationMapSection(
 
                             Column {
                                 Text(
-                                    text = "Lat: ${currentLocation.value.latitude.format(6)}, Lng: ${
-                                        currentLocation.value.longitude.format(
-                                            6
-                                        )
-                                    }",
+                                    text = stringResource(
+                                        R.string.latitude_longitude_format,
+                                        currentLocation.value.latitude,
+                                        currentLocation.value.longitude
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
@@ -999,13 +1027,13 @@ fun LocationMapSection(
                                 modifier = Modifier.padding(8.dp)
                             ) {
                                 Text(
-                                    text = "💡 The red pin stays fixed in the center.",
+                                    text = stringResource(R.string.red_pin_fixed_center),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    text = "Use two fingers to move the map and adjust the location.",
+                                    text = stringResource(R.string.use_two_fingers_adjust_location),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                                 )
@@ -1026,7 +1054,7 @@ fun LocationMapSection(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Full Screen")
+                        Text(stringResource(R.string.full_screen))
                     }
                 }
             }
@@ -1038,7 +1066,9 @@ fun LocationMapSection(
 fun GoogleMapWithPin(
     initialLocation: LatLng,
     onLocationChanged: (LatLng) -> Unit,
-    onAddressChanged: (String?) -> Unit
+    onAddressChanged: (String?) -> Unit,
+    unknownArea: String,
+    unknownCity: String
 ) {
     val context = LocalContext.current
     var mapView by remember { mutableStateOf<RestrictedMapView?>(null) }
@@ -1102,10 +1132,16 @@ fun GoogleMapWithPin(
                             onLocationChanged(centerPosition)
                             
                             // Update address when location changes
-                            getAddressFromLocation(context, centerPosition) { address ->
-                                onAddressChanged(address)
-                                println("New address: $address")
-                            }
+                            getAddressFromLocation(
+                                context, 
+                                centerPosition, 
+                                { address -> 
+                                    onAddressChanged(address)
+                                    println("New address: $address")
+                                },
+                                unknownArea,
+                                unknownCity
+                            )
                         }
                         
                         // Store the googleMap instance for later use
@@ -1149,7 +1185,7 @@ fun GoogleMapWithPin(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "Use two fingers to move the map",
+                        text = stringResource(R.string.use_two_fingers),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
@@ -1167,7 +1203,7 @@ fun GoogleMapWithPin(
             // Use the same location icon as full-screen
             Image(
                 painter = androidx.compose.ui.res.painterResource(id = com.example.reportviolation.R.drawable.ic_location_on),
-                contentDescription = "Fixed Location Marker",
+                                        contentDescription = stringResource(R.string.fixed_location_marker),
                 modifier = Modifier
                     .size(32.dp)
                     .align(Alignment.Center)
@@ -1190,7 +1226,8 @@ private suspend fun submitReport(
     location: LatLng,
     address: String?,
     navController: NavController,
-    context: android.content.Context
+    context: android.content.Context,
+    unknownCity: String
 ) {
     // Create violation report with the first violation type (since the model supports only one)
     val primaryViolationType = violationTypes.firstOrNull() ?: ViolationType.OTHERS
@@ -1199,25 +1236,25 @@ private suspend fun submitReport(
         id = 0, // Room will auto-generate
         reporterId = "current_user", // TODO: Get from auth
         reporterPhone = "1234567890", // TODO: Get from auth
-        reporterCity = "Mumbai", // TODO: Get from user profile
+        reporterCity = unknownCity, // TODO: Get from user profile
         reporterPincode = "400001", // TODO: Get from user profile
         violationType = primaryViolationType,
         severity = SeverityLevel.MAJOR, // TODO: Determine based on violation type
-        description = "Reported violations: ${violationTypes.joinToString(", ") { it.displayName }}",
+        description = "Reported violations: ${violationTypes.joinToString(", ") { getLocalizedViolationTypeName(it, context) }}",
         timestamp = LocalDateTime.now(),
         latitude = location.latitude,
         longitude = location.longitude,
         address = address ?: "Location: ${location.latitude.format(6)}, ${location.longitude.format(6)}",
         pincode = "400001", // TODO: Get from location
-        city = "Mumbai", // TODO: Get from location
-        district = "Mumbai", // TODO: Get from location
-        state = "Maharashtra", // TODO: Get from location
+        city = unknownCity, // TODO: Get from location
+        district = unknownCity, // TODO: Get from location
+        state = unknownCity, // TODO: Get from location
         vehicleNumber = null,
         vehicleType = null,
         vehicleColor = null,
         photoUri = if (mediaUri.endsWith(".jpg") || mediaUri.endsWith(".png")) mediaUri else null,
         videoUri = if (mediaUri.endsWith(".mp4") || mediaUri.endsWith(".mov")) mediaUri else null,
-        mediaMetadata = "Multiple violations: ${violationTypes.joinToString(", ") { it.displayName }}"
+        mediaMetadata = "Multiple violations: ${violationTypes.joinToString(", ") { getLocalizedViolationTypeName(it, context) }}"
     )
 
     // Save to database using repository
@@ -1294,7 +1331,9 @@ private fun getCurrentLocation(
 private fun getAddressFromLocation(
     context: android.content.Context,
     location: LatLng,
-    onAddressReceived: (String?) -> Unit
+    onAddressReceived: (String?) -> Unit,
+    unknownArea: String,
+    unknownCity: String
 ) {
     try {
         val geocoder = Geocoder(context)
@@ -1304,7 +1343,7 @@ private fun getAddressFromLocation(
             geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
                 if (addresses != null && addresses.isNotEmpty()) {
                     val address = addresses[0]
-                    val addressText = buildDetailedAddress(address)
+                    val addressText = buildDetailedAddress(address, unknownArea, unknownCity)
                     println("Detailed address obtained: $addressText")
                     onAddressReceived(addressText)
                 } else {
@@ -1317,7 +1356,7 @@ private fun getAddressFromLocation(
             val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
             if (addresses != null && addresses.isNotEmpty()) {
                 val address = addresses[0]
-                val addressText = buildDetailedAddress(address)
+                val addressText = buildDetailedAddress(address, unknownArea, unknownCity)
                 println("Detailed address obtained: $addressText")
                 onAddressReceived(addressText)
             } else {
@@ -1331,7 +1370,7 @@ private fun getAddressFromLocation(
     }
 }
 
-private fun buildDetailedAddress(address: Address): String {
+private fun buildDetailedAddress(address: Address, unknownArea: String, unknownCity: String): String {
     // Build detailed address with multiple components
     val addressParts = mutableListOf<String>()
 
@@ -1364,8 +1403,8 @@ private fun buildDetailedAddress(address: Address): String {
     return if (addressParts.isNotEmpty()) {
         addressParts.joinToString(", ")
     } else {
-        val locality = address.locality ?: address.subLocality ?: "Unknown Area"
-        val city = address.adminArea ?: "Unknown City"
+        val locality = address.locality ?: address.subLocality ?: unknownArea
+        val city = address.adminArea ?: unknownCity
         "$locality, $city"
     }
 }

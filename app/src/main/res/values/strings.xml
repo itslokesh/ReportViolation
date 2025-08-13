@@ -14,12 +14,220 @@
     <string name="settings_text_size">Aa Text size</string>
     <string name="settings_color_contrast">Color contrast</string>
     <string name="settings_screen_reader">Screen reader</string>
-    <string name="settings_language_hindi">Hindi</string>
+    <string name="settings_language_english">English</string>
     <string name="settings_language_tamil">Tamil</string>
-    <string name="settings_language_telugu">Telugu</string>
-    <string name="settings_language_bengali">Bengali</string>
-    <string name="settings_language_marathi">Marathi</string>
-    <string name="settings_language_kannada">Kannada</string>
-    <string name="settings_language_gujarati">Gujarati</string>
-    <string name="settings_language_punjabi">Punjabi</string>
+    
+    <!-- Common -->
+    <string name="home">Home</string>
+    <string name="reports">Reports</string>
+    <string name="notifications">Notifications</string>
+    <string name="profile">Profile</string>
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <string name="submit">Submit</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="loading">Loading...</string>
+    <string name="error">Error</string>
+    <string name="success">Success</string>
+    
+    <!-- Auth -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="forgot_password">Forgot Password?</string>
+    
+    <!-- Violation Types -->
+    <string name="overspeeding">Overspeeding</string>
+    <string name="signal_violation">Signal Violation</string>
+    <string name="wrong_side_driving">Wrong Side Driving</string>
+    <string name="lane_cutting">Lane Cutting</string>
+    <string name="mobile_phone_usage">Mobile Phone Usage</string>
+    <string name="no_parking_zone">No Parking Zone</string>
+    <string name="helmet_seatbelt_violation">Helmet/Seatbelt Violation</string>
+    <string name="drunk_driving_suspected">Drunk Driving Suspected</string>
+    <string name="others">Others</string>
+    
+    <!-- Report Status -->
+    <string name="status_submitted">Submitted</string>
+    <string name="status_in_progress">In Progress</string>
+    <string name="status_resolved">Resolved</string>
+    <string name="status_rejected">Rejected</string>
+    
+    <!-- Camera -->
+    <string name="camera_photo_mode">Photo Mode</string>
+    <string name="camera_video_mode">Video Mode</string>
+    <string name="camera_capture">Capture</string>
+    <string name="camera_record">Record</string>
+    <string name="camera_stop">Stop</string>
+    <string name="camera_retake">Retake</string>
+    
+    <!-- Map -->
+    <string name="map_select_location">Select Location</string>
+    <string name="map_current_location">Current Location</string>
+    <string name="map_location_permission_required">Location Permission Required</string>
+    
+    <!-- Rewards -->
+    <string name="rewards_title">Rewards</string>
+    <string name="rewards_points_earned">Points Earned</string>
+    <string name="rewards_points_redeemed">Points Redeemed</string>
+    <string name="rewards_total_points">Total Points</string>
+    
+    <!-- Report Details -->
+    <string name="report_details_title">Report Details</string>
+    <string name="report_case_number">Case Number</string>
+    <string name="report_date">Date</string>
+    <string name="report_time">Time</string>
+    <string name="report_location">Location</string>
+    <string name="report_violation_type">Violation Type</string>
+    <string name="report_description">Description</string>
+    <string name="report_evidence">Evidence</string>
+    <string name="report_status">Status</string>
+    
+    <!-- Permissions -->
+    <string name="permission_camera_required">Camera Permission Required</string>
+    <string name="permission_location_required">Location Permission Required</string>
+    <string name="permission_storage_required">Storage Permission Required</string>
+    <string name="permission_microphone_required">Microphone Permission Required</string>
+    
+    <!-- Error Messages -->
+    <string name="error_network">Network Error</string>
+    <string name="error_server">Server Error</string>
+    <string name="error_unknown">Unknown Error</string>
+    <string name="error_invalid_input">Invalid Input</string>
+    <string name="error_file_too_large">File Too Large</string>
+    <string name="error_invalid_format">Invalid Format</string>
+    
+    <!-- Language Change Dialog -->
+    <string name="language_change_confirmation_title">Change Language</string>
+    <string name="language_change_confirmation_message_english">Are you sure you want to change the language from %1$s to %2$s?</string>
+    <string name="language_change_confirmation_message_tamil">நீங்கள் மொழியை %1$s இலிருந்து %2$s க்கு மாற்ற விரும்புகிறீர்களா?</string>
+    <string name="language_change_confirm">Change</string>
+    
+    <!-- Page Headers and Titles -->
+    <string name="traffic_violation_reports">Traffic Violation Reports</string>
+    <string name="recent_reports">Recent Reports</string>
+    <string name="report_violation">Report Violation</string>
+    <string name="report_violation_title">Report Traffic Violation</string>
+    <string name="select_violation_type">Select Violation Type</string>
+    <string name="add_description">Add Description</string>
+    <string name="description_placeholder">Describe what you observed...</string>
+    <string name="vehicle_number">Vehicle Number</string>
+    <string name="vehicle_number_placeholder">Enter vehicle number</string>
+    <string name="location_details">Location Details</string>
+    <string name="location_placeholder">Enter location details</string>
+    <string name="capture_evidence">Capture Evidence</string>
+    <string name="photo">Photo</string>
+    <string name="video">Video</string>
+    <string name="submit_report">Submit Report</string>
+    <string name="violations_reported">Violations\nReported</string>
+    <string name="reports_approved">Reports\nApproved</string>
+    <string name="accuracy_rate">Accuracy\nRate</string>
+    <string name="total_reports">Total\nReports</string>
+    <string name="view_all_reports">View All Reports</string>
+    <string name="quick_report">Quick Report</string>
+    <string name="filter_all">All</string>
+    <string name="filter_submitted">Submitted</string>
+    <string name="filter_in_progress">In Progress</string>
+    <string name="filter_resolved">Resolved</string>
+    <string name="sort_newest_first">Newest First</string>
+    <string name="sort_oldest_first">Oldest First</string>
+    <string name="error_loading_reports">Error loading reports</string>
+    <string name="no_reports_found">No reports found</string>
+    <string name="no_notifications">No notifications</string>
+    <string name="pull_to_refresh">Pull to refresh</string>
+    
+    <!-- Report Details -->
+    <string name="report_details">Report Details</string>
+    <string name="case_number">Case Number</string>
+    <string name="date_time">Date &amp; Time</string>
+    <string name="location">Location</string>
+    <string name="violation_types">Violation Types</string>
+    <string name="description">Description</string>
+    <string name="evidence">Evidence</string>
+    <string name="status">Status</string>
+    <string name="no_description">No description provided</string>
+    <string name="no_evidence">No evidence provided</string>
+    
+    <!-- Sort and Filter -->
+    <string name="sort_by">Sort by</string>
+    <string name="filter_by">Filter by</string>
+    
+    <!-- Report Violation Form -->
+    <string name="violation_types_header">Violation Types</string>
+    <string name="description_header">Description</string>
+    <string name="vehicle_details">Vehicle Details</string>
+    <string name="location_header">Location</string>
+    <string name="evidence_header">Evidence</string>
+    <string name="requirements">Requirements</string>
+    <string name="required_field">Required field</string>
+    <string name="optional_field">Optional field</string>
+    <string name="take_photo_video">Take Photo/Video</string>
+    <string name="current_location">Current Location</string>
+    <string name="manual_location">Manual Location</string>
+    <string name="enter_location">Enter location manually</string>
+    <string name="capture_media">Capture Media</string>
+    <string name="remove">Remove</string>
+    <string name="play">Play</string>
+    <string name="violation_selected">violation(s) selected</string>
+    <string name="no_violation_selected">No violation selected</string>
+    
+    <!-- Recent Reports -->
+    <string name="no_reports_yet">No reports yet</string>
+    <string name="start_reporting">Start reporting violations to see them here</string>
+    <string name="report_violation_button">Report Violation</string>
+    <string name="apply">Apply</string>
+    <string name="clear_all">Clear All</string>
+    <string name="all_violation_types">All Violation Types</string>
+    <string name="retry">Retry</string>
+    
+    <!-- Language Names -->
+    <string name="language_english">English</string>
+    <string name="language_tamil">Tamil</string>
+    
+    <!-- Timeline Status -->
+    <string name="status_received">Received</string>
+    <string name="status_submitted_timeline">Submitted</string>
+    <string name="status_in_review">In Review</string>
+    <string name="status_resolved_timeline">Resolved</string>
+    <string name="status_pending">Pending</string>
+    
+    <!-- Report Violation Screen -->
+    <string name="location_detected">Location detected</string>
+    <string name="getting_location">Getting location...</string>
+    <string name="refresh_location">Refresh location</string>
+    <string name="location_not_available">Location Not Available</string>
+    <string name="grant_location_permission">Please grant location permission to see the map</string>
+    <string name="location_access_required">Location Access Required</string>
+    <string name="location_permission_message">We need your location to automatically tag violation reports with GPS coordinates</string>
+    <string name="allow_location_access">Allow Location Access</string>
+    <string name="record_video">Record Video</string>
+    <string name="remove_media">Remove</string>
+    <string name="photo_thumbnail">Photo thumbnail</string>
+    <string name="video_media">Video</string>
+    <string name="play_video">Play video</string>
+    <string name="violation_types_section">Violation Types</string>
+    <string name="confirm_selection">Confirm</string>
+    <string name="cancel_selection">Cancel</string>
+    <string name="violation_location">Violation Location</string>
+    <string name="full_screen">Full Screen</string>
+    <string name="use_two_fingers">Use two fingers to move the map</string>
+    <string name="fixed_location_marker">Fixed Location Marker</string>
+    <string name="unknown_area">Unknown Area</string>
+    <string name="unknown_city">Unknown City</string>
+    <string name="submit_button_requirements">Submit Button Requirements:</string>
+    <string name="red_pin_fixed_center">💡 The red pin stays fixed in the center.</string>
+    <string name="use_two_fingers_set_location">Use two fingers to move the map and set the exact violation location (pin stays centered)</string>
+    <string name="use_two_fingers_adjust_location">Use two fingers to move the map and adjust the location.</string>
+    <string name="latitude_longitude_format">Lat: %1$.6f, Lng: %2$.6f</string>
+    <string name="confirm_and_proceed">Confirm and Proceed</string>
+    <string name="select_location">Select Location</string>
+    <string name="selected_location_address">Selected Location Address</string>
+    <string name="fetching_address">Fetching address...</string>
+    <string name="unknown_location">Unknown Location</string>
+    <string name="error_fetching_address">Error fetching address</string>
 </resources>

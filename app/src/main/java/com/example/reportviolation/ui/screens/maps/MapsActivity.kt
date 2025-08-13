@@ -42,7 +42,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             
             // Enable back button in action bar
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            supportActionBar?.title = "Select Location"
+            supportActionBar?.title = getString(R.string.select_location)
             
             // Get initial location from intent
             intent.extras?.let { bundle ->
@@ -165,7 +165,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // Reverse geocode LatLng to address with loading state
     private fun getAddressFromLatLng(latLng: LatLng) {
         // Show loading state
-        locationText.text = "Fetching address..."
+        locationText.text = getString(R.string.fetching_address)
         confirmBtn.isEnabled = false
         
         coroutineScope.launch {
@@ -195,14 +195,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                             if (addressParts.isNotEmpty()) {
                                 addressParts.joinToString(", ")
                             } else {
-                                addressObj.getAddressLine(0) ?: "Unknown Location"
+                                addressObj.getAddressLine(0) ?: getString(R.string.unknown_location)
                             }
                         } else {
-                            "Unknown Location"
+                            getString(R.string.unknown_location)
                         }
                     } catch (e: IOException) {
                         Log.e("Location", "Geocoding error: ${e.message}")
-                        "Error fetching address"
+                        getString(R.string.error_fetching_address)
                     }
                 }
                 
@@ -214,7 +214,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 Log.d("Location", "Selected Address: $address")
                 
             } catch (e: Exception) {
-                locationText.text = "Error fetching address"
+                locationText.text = getString(R.string.error_fetching_address)
                 confirmBtn.isEnabled = false
                 Log.e("Location", "Error: ${e.message}")
             }

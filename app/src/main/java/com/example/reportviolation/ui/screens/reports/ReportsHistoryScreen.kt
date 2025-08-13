@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.components.MediaPreviewDialog
 import com.example.reportviolation.ui.components.ViolationIcon
 import com.example.reportviolation.ui.components.ViolationIconDisplayMode
+import com.example.reportviolation.utils.getLocalizedViolationTypeName
 
 
 
@@ -191,6 +192,7 @@ fun ReportsHistoryScreen(navController: NavController) {
 
 @Composable
 fun ReportCard(report: ViolationReport, navController: NavController) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -369,7 +371,7 @@ fun ReportCard(report: ViolationReport, navController: NavController) {
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = report.violationType.displayName,
+                        text = getLocalizedViolationTypeName(report.violationType, context),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -43,9 +45,13 @@ import com.example.reportviolation.data.repository.ViolationReportRepository
 import com.example.reportviolation.data.local.AppDatabase
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
+import com.example.reportviolation.domain.service.LanguageManager
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryViewModel
+import com.example.reportviolation.utils.getLocalizedViolationTypeName
+import com.example.reportviolation.utils.getLocalizedStatusName
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +82,7 @@ fun DashboardScreen(
                     },
                     label = { 
                         Text(
-                            "Home", 
+                            stringResource(R.string.home), 
                             color = if (selectedTab == 0) DarkBlue else Color.Gray
                         ) 
                     },
@@ -93,7 +99,7 @@ fun DashboardScreen(
                     },
                     label = { 
                         Text(
-                            "Reports", 
+                            stringResource(R.string.reports), 
                             color = if (selectedTab == 1) DarkBlue else Color.Gray
                         ) 
                     },
@@ -110,7 +116,7 @@ fun DashboardScreen(
                     },
                     label = { 
                         Text(
-                            "Notifications", 
+                            stringResource(R.string.notifications), 
                             color = if (selectedTab == 2) DarkBlue else Color.Gray
                         ) 
                     },
@@ -127,7 +133,7 @@ fun DashboardScreen(
                     },
                     label = { 
                         Text(
-                            "Profile", 
+                            stringResource(R.string.profile), 
                             color = if (selectedTab == 3) DarkBlue else Color.Gray
                         ) 
                     },
@@ -173,7 +179,7 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
             // Header
             item {
                 Text(
-                    text = "Home",
+                    text = stringResource(R.string.home),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -188,19 +194,19 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
                 ) {
                     StatCard(
                         value = uiState.totalReports.toString(),
-                        label = "Violations\nReported",
+                        label = stringResource(R.string.violations_reported),
                         backgroundColor = DarkBlue,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
                         value = uiState.approvedReports.toString(),
-                        label = "Resolved",
+                        label = stringResource(R.string.filter_resolved),
                         backgroundColor = MediumBlue,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
                         value = uiState.pendingReports.toString(),
-                        label = "Pending",
+                        label = stringResource(R.string.filter_in_progress),
                         backgroundColor = LightBlue,
                         modifier = Modifier.weight(1f)
                     )
@@ -212,7 +218,7 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
             // Recent Reports Section
             item {
                 Text(
-                    text = "Recent Reports",
+                    text = stringResource(R.string.recent_reports),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -240,14 +246,14 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "No reports yet",
+                                text = stringResource(R.string.no_reports_yet),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = Color.Gray
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Start reporting violations to see them here",
+                                text = stringResource(R.string.start_reporting),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.Gray,
                                 textAlign = TextAlign.Center
@@ -282,7 +288,7 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Report\nViolation",
+                            text = stringResource(R.string.report_violation_button),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White,
                             textAlign = TextAlign.Center,
@@ -310,7 +316,7 @@ fun StatCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(120.dp),
+        modifier = modifier.height(130.dp),
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
@@ -337,7 +343,9 @@ fun StatCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                lineHeight = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -345,6 +353,7 @@ fun StatCard(
 
 @Composable
 fun RecentReportItem(report: RecentReport, navController: NavController) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -375,7 +384,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
             // Violation Details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = report.violationType.displayName,
+                                            text = getLocalizedViolationTypeName(report.violationType, context),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -448,24 +457,46 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
         ) {
         // Header with title (matching Home tab style)
         Text(
-            text = "Traffic Violation Reports",
+            text = stringResource(R.string.traffic_violation_reports),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(16.dp)
         )
         
         // Filter tabs only
-        Row(
+        LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            filters.forEach { filter ->
+            item {
                 FilterTab(
-                    text = filter,
-                    isSelected = selectedFilter == filter,
-                    onClick = { selectedFilter = filter }
+                    text = stringResource(R.string.filter_all),
+                    isSelected = selectedFilter == "All",
+                    onClick = { selectedFilter = "All" }
+                )
+            }
+            item {
+                FilterTab(
+                    text = stringResource(R.string.filter_submitted),
+                    isSelected = selectedFilter == "Submitted",
+                    onClick = { selectedFilter = "Submitted" }
+                )
+            }
+            item {
+                FilterTab(
+                    text = stringResource(R.string.filter_in_progress),
+                    isSelected = selectedFilter == "In Progress",
+                    onClick = { selectedFilter = "In Progress" }
+                )
+            }
+            item {
+                FilterTab(
+                    text = stringResource(R.string.filter_resolved),
+                    isSelected = selectedFilter == "Resolved",
+                    onClick = { selectedFilter = "Resolved" }
                 )
             }
         }
@@ -489,7 +520,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Error loading reports",
+                            text = stringResource(R.string.error_loading_reports),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -501,7 +532,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.refreshReports() }) {
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -641,7 +672,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Sort by",
+                        text = stringResource(R.string.sort_by),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -671,7 +702,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Filter",
+                        text = stringResource(R.string.filter_by),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -736,7 +767,7 @@ fun NotificationsTab(padding: PaddingValues) {
     ) {
         item {
             Text(
-                text = "Notifications",
+                text = stringResource(R.string.notifications),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -754,13 +785,13 @@ fun NotificationsTab(padding: PaddingValues) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "No notifications",
+                        text = stringResource(R.string.no_notifications),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "You're all caught up!",
+                        text = stringResource(R.string.no_reports_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -772,8 +803,24 @@ fun NotificationsTab(padding: PaddingValues) {
 
 @Composable
 fun ProfileTab(padding: PaddingValues, navController: NavController) {
+    val context = LocalContext.current
     val viewModel = remember { com.example.reportviolation.ui.screens.settings.SettingsViewModel() }
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Initialize ViewModel with context
+    LaunchedEffect(Unit) {
+        viewModel.initialize(context)
+    }
+    
+    // Language confirmation dialog
+    if (uiState.showLanguageConfirmationDialog) {
+        LanguageConfirmationDialog(
+            currentLanguage = uiState.selectedLanguage,
+            newLanguage = uiState.pendingLanguageChange ?: "",
+            onConfirm = { viewModel.confirmLanguageChange() },
+            onDismiss = { viewModel.dismissLanguageConfirmationDialog() }
+        )
+    }
     
     LazyColumn(
         modifier = Modifier
@@ -801,24 +848,11 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
             )
         }
         
-        // Notifications Section
-        item {
-            NotificationsSection(
-                governmentNotifications = uiState.governmentNotifications,
-                serviceUpdates = uiState.serviceUpdates,
-                offers = uiState.offers,
-                onGovernmentToggle = { viewModel.updateGovernmentNotifications(it) },
-                onServiceUpdatesToggle = { viewModel.updateServiceUpdates(it) },
-                onOffersToggle = { viewModel.updateOffers(it) }
-            )
-        }
-        
-        // Accessibility Section
+        // Accessibility Section (Text Size and Color Contrast only)
         item {
             AccessibilitySection(
                 onTextSizeClick = { /* Navigate to text size settings */ },
-                onColorContrastClick = { /* Navigate to color contrast settings */ },
-                onScreenReaderClick = { /* Navigate to screen reader settings */ }
+                onColorContrastClick = { /* Navigate to color contrast settings */ }
             )
         }
         
@@ -895,12 +929,14 @@ fun LanguageSection(
     showLanguageDropdown: Boolean,
     onDropdownToggle: () -> Unit
 ) {
-    val languages = listOf("Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Kannada", "Gujarati", "Punjabi")
+    val context = LocalContext.current
+    val languageManager = remember { LanguageManager(context) }
+    val languages = listOf(LanguageManager.LANGUAGE_ENGLISH, LanguageManager.LANGUAGE_TAMIL)
     
     Column {
         // Section Title
         Text(
-            text = "Language",
+            text = stringResource(R.string.settings_language),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = Color.Black,
@@ -924,7 +960,7 @@ fun LanguageSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = selectedLanguage,
+                        text = languageManager.getLanguageDisplayName(selectedLanguage),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Black
                     )
@@ -951,7 +987,7 @@ fun LanguageSection(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = language,
+                                text = languageManager.getLanguageDisplayName(language),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Black
                             )
@@ -971,102 +1007,17 @@ fun LanguageSection(
     }
 }
 
-@Composable
-fun NotificationsSection(
-    governmentNotifications: Boolean,
-    serviceUpdates: Boolean,
-    offers: Boolean,
-    onGovernmentToggle: (Boolean) -> Unit,
-    onServiceUpdatesToggle: (Boolean) -> Unit,
-    onOffersToggle: (Boolean) -> Unit
-) {
-    Column {
-        // Section Title
-        Text(
-            text = "Notifications",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Column {
-                // Government Notifications
-                NotificationToggleItem(
-                    title = "Government",
-                    isEnabled = governmentNotifications,
-                    onToggle = onGovernmentToggle
-                )
-                
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                
-                // Service Updates
-                NotificationToggleItem(
-                    title = "Service Updates",
-                    isEnabled = serviceUpdates,
-                    onToggle = onServiceUpdatesToggle
-                )
-                
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                
-                // Offers
-                NotificationToggleItem(
-                    title = "Offers",
-                    isEnabled = offers,
-                    onToggle = onOffersToggle
-                )
-            }
-        }
-    }
-}
 
-@Composable
-fun NotificationToggleItem(
-    title: String,
-    isEnabled: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black
-        )
-        
-        Switch(
-            checked = isEnabled,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = DarkBlue,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.LightGray
-            )
-        )
-    }
-}
 
 @Composable
 fun AccessibilitySection(
     onTextSizeClick: () -> Unit,
-    onColorContrastClick: () -> Unit,
-    onScreenReaderClick: () -> Unit
+    onColorContrastClick: () -> Unit
 ) {
     Column {
         // Section Title
         Text(
-            text = "Accessibility",
+            text = stringResource(R.string.settings_accessibility),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = Color.Black,
@@ -1081,7 +1032,7 @@ fun AccessibilitySection(
             Column {
                 // Text Size
                 AccessibilityItem(
-                    title = "Aa Text size",
+                    title = stringResource(R.string.settings_text_size),
                     icon = Icons.Default.TextFields,
                     onClick = onTextSizeClick
                 )
@@ -1090,18 +1041,9 @@ fun AccessibilitySection(
                 
                 // Color Contrast
                 AccessibilityItem(
-                    title = "Color contrast",
+                    title = stringResource(R.string.settings_color_contrast),
                     icon = Icons.Default.Contrast,
                     onClick = onColorContrastClick
-                )
-                
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                
-                // Screen Reader
-                AccessibilityItem(
-                    title = "Screen reader",
-                    icon = Icons.Default.VolumeUp,
-                    onClick = onScreenReaderClick
                 )
             }
         }
@@ -1153,7 +1095,7 @@ fun RewardPointsSection(
     Column {
         // Section Title
         Text(
-            text = "Reward Points",
+            text = stringResource(R.string.settings_reward_points),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = Color.Black,
@@ -1197,12 +1139,82 @@ fun LogoutButton(
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
-            text = "Logout",
+            text = stringResource(R.string.settings_logout),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = Color.White
         )
     }
+}
+
+@Composable
+fun LanguageConfirmationDialog(
+    currentLanguage: String,
+    newLanguage: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val languageManager = remember { LanguageManager(context) }
+    
+    val currentLanguageDisplay = languageManager.getLanguageDisplayName(currentLanguage)
+    val newLanguageDisplay = languageManager.getLanguageDisplayName(newLanguage)
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.language_change_confirmation_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                // English message
+                Text(
+                    text = stringResource(R.string.language_change_confirmation_message_english, currentLanguageDisplay, newLanguageDisplay),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                // Tamil message
+                Text(
+                    text = stringResource(R.string.language_change_confirmation_message_tamil, currentLanguageDisplay, newLanguageDisplay),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = DarkBlue
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.language_change_confirm),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color.Gray
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.cancel),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        containerColor = Color.White,
+        titleContentColor = Color.Black,
+        textContentColor = Color.Black
+    )
 }
 
 // New Reports Tab Components
@@ -1307,7 +1319,7 @@ fun ReportCardNew(report: ViolationReport, navController: NavController, sourceT
                     
                     // Status text
                     Text(
-                        text = getStatusText(report.status),
+                        text = getLocalizedStatusName(report.status, LocalContext.current),
                         style = MaterialTheme.typography.bodySmall,
                         color = getStatusColor(report.status),
                         fontWeight = FontWeight.Medium
@@ -1330,7 +1342,7 @@ fun FilterDialog(
         onDismissRequest = onDismiss,
         title = { 
             Text(
-                text = "Filter by Violation Type",
+                text = stringResource(R.string.violation_types_header),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -1363,7 +1375,7 @@ fun FilterDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         
                         Text(
-                            text = violationType.name.replace("_", " "),
+                            text = getLocalizedViolationTypeName(violationType, LocalContext.current),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -1387,7 +1399,7 @@ fun FilterDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
-                        text = "All Violation Types",
+                        text = stringResource(R.string.all_violation_types),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
@@ -1396,12 +1408,12 @@ fun FilterDialog(
         },
         confirmButton = {
             TextButton(onClick = onApply) {
-                Text("Apply")
+                Text(stringResource(R.string.apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onClearFilters) {
-                Text("Clear All")
+                Text(stringResource(R.string.clear_all))
             }
         }
     )
@@ -1419,7 +1431,7 @@ fun SortDialog(
         onDismissRequest = onDismiss,
         title = { 
             Text(
-                text = "Sort by Date",
+                text = stringResource(R.string.sort_by),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -1442,7 +1454,11 @@ fun SortDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         
                         Text(
-                            text = option,
+                            text = when (option) {
+                                "Newest First" -> stringResource(R.string.sort_newest_first)
+                                "Oldest First" -> stringResource(R.string.sort_oldest_first)
+                                else -> option
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -1452,7 +1468,7 @@ fun SortDialog(
         },
         confirmButton = {
             TextButton(onClick = onApply) {
-                Text("Apply")
+                Text(stringResource(R.string.apply))
             }
         }
     )
@@ -1478,12 +1494,3 @@ private fun getStatusIcon(status: ReportStatus): androidx.compose.ui.graphics.ve
     }
 }
 
-private fun getStatusText(status: ReportStatus): String {
-    return when (status) {
-        ReportStatus.PENDING -> "Submitted"
-        ReportStatus.UNDER_REVIEW -> "In Progress"
-        ReportStatus.APPROVED -> "Resolved"
-        ReportStatus.REJECTED -> "Rejected"
-        ReportStatus.DUPLICATE -> "Duplicate"
-    }
-}

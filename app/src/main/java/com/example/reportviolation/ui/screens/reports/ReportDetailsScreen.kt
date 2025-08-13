@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.example.reportviolation.data.local.AppDatabase
 import com.example.reportviolation.domain.service.DuplicateDetectionService
 import com.example.reportviolation.domain.service.JurisdictionService
 import com.example.reportviolation.ui.navigation.Screen
+import com.example.reportviolation.utils.getLocalizedViolationTypeName
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -115,7 +117,7 @@ fun ReportDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Report Details") },
+                title = { Text(stringResource(R.string.report_details)) },
                 navigationIcon = {
                     IconButton(onClick = { 
                         // Trigger the same logic as BackHandler
@@ -248,6 +250,7 @@ fun IncidentVisualSection(report: ViolationReport) {
 
 @Composable
 fun IncidentDetailsSection(report: ViolationReport) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -259,7 +262,7 @@ fun IncidentDetailsSection(report: ViolationReport) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Incident Details",
+                text = stringResource(R.string.report_details),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -268,7 +271,7 @@ fun IncidentDetailsSection(report: ViolationReport) {
             // Time
             DetailRow(
                 icon = Icons.Default.Schedule,
-                label = "Time",
+                label = stringResource(R.string.date_time),
                 value = formatDateTime(report.timestamp)
             )
             
@@ -277,7 +280,7 @@ fun IncidentDetailsSection(report: ViolationReport) {
             // Location
             LocationDetailRow(
                 icon = Icons.Default.LocationOn,
-                label = "Location",
+                label = stringResource(R.string.location),
                 address = report.address,
                 latitude = report.latitude,
                 longitude = report.longitude
@@ -288,8 +291,8 @@ fun IncidentDetailsSection(report: ViolationReport) {
             // Violation Type
             DetailRow(
                 icon = Icons.Default.Warning,
-                label = "Violation Type",
-                value = report.violationType.displayName
+                label = stringResource(R.string.violation_types),
+                value = getLocalizedViolationTypeName(report.violationType, context)
             )
         }
     }
@@ -412,7 +415,7 @@ fun StatusTimelineSection(report: ViolationReport) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Status Timeline",
+                text = stringResource(R.string.status),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -420,31 +423,31 @@ fun StatusTimelineSection(report: ViolationReport) {
             
             // Timeline items
             TimelineItem(
-                status = "Received",
+                status = stringResource(R.string.status_received),
                 date = formatDateTime(report.createdAt),
                 isCompleted = true,
                 isFirst = true
             )
             
             TimelineItem(
-                status = "Submitted",
+                status = stringResource(R.string.status_submitted_timeline),
                 date = formatDateTime(report.createdAt.plusMinutes(15)),
                 isCompleted = true
             )
             
             TimelineItem(
-                status = "In Review",
+                status = stringResource(R.string.status_in_review),
                 date = formatDateTime(report.createdAt.plusDays(1)),
                 isCompleted = report.status != ReportStatus.PENDING,
                 isCurrent = report.status == ReportStatus.UNDER_REVIEW
             )
             
             TimelineItem(
-                status = "Resolved",
+                status = stringResource(R.string.status_resolved_timeline),
                 date = if (report.status == ReportStatus.APPROVED) {
                     formatDateTime(report.reviewTimestamp ?: report.updatedAt)
                 } else {
-                    "Pending"
+                    stringResource(R.string.status_pending)
                 },
                 isCompleted = report.status == ReportStatus.APPROVED,
                 isLast = true,

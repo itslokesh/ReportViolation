@@ -10,7 +10,7 @@
         android:id="@+id/locationText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Selected Location Address"
+        android:text="@string/selected_location_address"
         android:textSize="16sp"
         android:textColor="@android:color/black"
         android:minHeight="48dp"
@@ -20,9 +20,9 @@
         android:id="@+id/confirmBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Confirm and Proceed"
+        android:text="@string/confirm_and_proceed"
         android:layout_marginTop="10dp"
-        android:backgroundTint="@color/purple_500"
+        android:backgroundTint="@color/primary"
         android:textColor="@android:color/white" />
 
 </LinearLayout>
