@@ -29,3 +29,4 @@ fun getLocalizedStatusName(status: ReportStatus, context: Context): String {
         ReportStatus.DUPLICATE -> context.getString(R.string.status_rejected) // Using rejected for duplicate
     }
 }
+

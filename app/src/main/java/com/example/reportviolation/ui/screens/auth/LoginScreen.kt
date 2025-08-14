@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.reportviolation.ui.navigation.Screen
+import com.example.reportviolation.ui.theme.DarkBlue
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -30,9 +31,12 @@ fun LoginScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(modifier = Modifier.height(60.dp))
+        
         Text(
             text = "Welcome Back",
             style = MaterialTheme.typography.headlineMedium,
+            color = DarkBlue,
             textAlign = TextAlign.Center
         )
         
@@ -59,7 +63,11 @@ fun LoginScreen(navController: NavController) {
                 isLoading = false
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DarkBlue,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -216,9 +224,12 @@ fun LoginScreen(navController: NavController) {
                 style = MaterialTheme.typography.bodyMedium
             )
             TextButton(
-                onClick = { navController.navigate(Screen.Registration.route) }
+                onClick = { navController.navigate(Screen.Signup.route) }
             ) {
-                Text("Sign Up")
+                Text(
+                    "Sign Up",
+                    color = DarkBlue
+                )
             }
         }
     }
