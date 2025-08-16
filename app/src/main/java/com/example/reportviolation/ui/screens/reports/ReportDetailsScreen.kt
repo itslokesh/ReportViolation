@@ -34,7 +34,9 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
 import com.example.reportviolation.R
-import com.example.reportviolation.data.model.ViolationReport
+import com.example.reportviolation.data.remote.ApiClient
+import com.example.reportviolation.data.remote.CitizenReportsApi
+import com.example.reportviolation.data.remote.CitizenReportDetail
 import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.data.model.ViolationType
 import com.example.reportviolation.data.repository.ViolationReportRepository
@@ -56,22 +58,21 @@ fun ReportDetailsScreen(
     sourceTab: String = "home"
 ) {
     val context = LocalContext.current
-    val repository = remember {
-        ViolationReportRepository(
-            AppDatabase.getDatabase(context).violationReportDao(),
-            DuplicateDetectionService(),
-            JurisdictionService()
-        )
+    val reportsApi: CitizenReportsApi = remember {
+        val baseRetrofit = ApiClient.retrofit(okhttp3.OkHttpClient.Builder().build())
+        val authClient = ApiClient.buildClientWithAuthenticator(baseRetrofit.create(com.example.reportviolation.data.remote.AuthApi::class.java))
+        ApiClient.retrofit(authClient).create(CitizenReportsApi::class.java)
     }
-    
-    var report by remember { mutableStateOf<ViolationReport?>(null) }
+
+    var report by remember { mutableStateOf<CitizenReportDetail?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
     
     // Function to load report data
     suspend fun loadReport() {
         try {
-            report = repository.getViolationReportById(reportId)
+            val res = reportsApi.getReport(reportId.toString())
+            report = res.data
         } catch (e: Exception) {
             // Handle error
         } finally {
@@ -156,9 +157,9 @@ fun ReportDetailsScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                report?.let { violationReport ->
+                report?.let { detail ->
                     ReportDetailsContent(
-                        report = violationReport,
+                        report = detail,
                         modifier = Modifier.padding(padding)
                     )
                 } ?: run {
@@ -185,7 +186,7 @@ fun ReportDetailsScreen(
 
 @Composable
 fun ReportDetailsContent(
-    report: ViolationReport,
+    report: CitizenReportDetail,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -212,7 +213,7 @@ fun ReportDetailsContent(
 }
 
 @Composable
-fun IncidentVisualSection(report: ViolationReport) {
+fun IncidentVisualSection(report: CitizenReportDetail) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,9 +227,9 @@ fun IncidentVisualSection(report: ViolationReport) {
                 .height(200.dp)
                 .background(Color(0xFF1976D2))
         ) {
-            if (report.photoUri != null) {
+            if (report.photoUrl != null) {
                 Image(
-                    painter = rememberAsyncImagePainter(report.photoUri),
+                    painter = rememberAsyncImagePainter(report.photoUrl),
                     contentDescription = "Incident Photo",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -249,7 +250,7 @@ fun IncidentVisualSection(report: ViolationReport) {
 }
 
 @Composable
-fun IncidentDetailsSection(report: ViolationReport) {
+fun IncidentDetailsSection(report: CitizenReportDetail) {
     val context = LocalContext.current
     Card(
         modifier = Modifier
@@ -272,7 +273,7 @@ fun IncidentDetailsSection(report: ViolationReport) {
             DetailRow(
                 icon = Icons.Default.Schedule,
                 label = stringResource(R.string.date_time),
-                value = formatDateTime(report.timestamp)
+                value = report.timestamp
             )
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -281,7 +282,7 @@ fun IncidentDetailsSection(report: ViolationReport) {
             LocationDetailRow(
                 icon = Icons.Default.LocationOn,
                 label = stringResource(R.string.location),
-                address = report.address,
+                address = report.addressEncrypted,
                 latitude = report.latitude,
                 longitude = report.longitude
             )
@@ -292,7 +293,17 @@ fun IncidentDetailsSection(report: ViolationReport) {
             DetailRow(
                 icon = Icons.Default.Warning,
                 label = stringResource(R.string.violation_types),
-                value = getLocalizedViolationTypeName(report.violationType, context)
+                value = buildString {
+                    val typesFromMedia = runCatching {
+                        val json = report.mediaMetadata
+                        if (!json.isNullOrBlank()) {
+                            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+                            val arr = obj.getAsJsonArray("violationTypes")
+                            arr?.mapNotNull { it.asString }?.joinToString(", ")
+                        } else null
+                    }.getOrNull()
+                    append(typesFromMedia ?: report.violationType ?: "OTHERS")
+                }
             )
         }
     }
@@ -336,9 +347,9 @@ fun DetailRow(
 fun LocationDetailRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    address: String,
-    latitude: Double,
-    longitude: Double
+    address: String?,
+    latitude: Double?,
+    longitude: Double?
 ) {
     val context = LocalContext.current
     
@@ -366,7 +377,9 @@ fun LocationDetailRow(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable {
-                    val gmmIntentUri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+                    val lat = latitude ?: return@clickable
+                    val lon = longitude ?: return@clickable
+                    val gmmIntentUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
                     val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                     mapIntent.setPackage("com.google.android.apps.maps")
                     
@@ -382,7 +395,7 @@ fun LocationDetailRow(
                 }
             ) {
                 Text(
-                    text = address,
+                    text = address ?: "Location unavailable",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF1976D2),
@@ -403,7 +416,7 @@ fun LocationDetailRow(
 }
 
 @Composable
-fun StatusTimelineSection(report: ViolationReport) {
+fun StatusTimelineSection(report: com.example.reportviolation.data.remote.CitizenReportDetail) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -424,34 +437,30 @@ fun StatusTimelineSection(report: ViolationReport) {
             // Timeline items
             TimelineItem(
                 status = stringResource(R.string.status_received),
-                date = formatDateTime(report.createdAt),
+                date = report.timestamp,
                 isCompleted = true,
                 isFirst = true
             )
             
             TimelineItem(
                 status = stringResource(R.string.status_submitted_timeline),
-                date = formatDateTime(report.createdAt.plusMinutes(15)),
+                date = report.timestamp,
                 isCompleted = true
             )
             
             TimelineItem(
                 status = stringResource(R.string.status_in_review),
-                date = formatDateTime(report.createdAt.plusDays(1)),
-                isCompleted = report.status != ReportStatus.PENDING,
-                isCurrent = report.status == ReportStatus.UNDER_REVIEW
+                date = report.timestamp,
+                isCompleted = report.status != null && report.status != com.example.reportviolation.data.model.ReportStatus.PENDING.name,
+                isCurrent = report.status == com.example.reportviolation.data.model.ReportStatus.UNDER_REVIEW.name
             )
             
             TimelineItem(
                 status = stringResource(R.string.status_resolved_timeline),
-                date = if (report.status == ReportStatus.APPROVED) {
-                    formatDateTime(report.reviewTimestamp ?: report.updatedAt)
-                } else {
-                    stringResource(R.string.status_pending)
-                },
-                isCompleted = report.status == ReportStatus.APPROVED,
+                date = if (report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name) stringResource(R.string.status_resolved_timeline) else stringResource(R.string.status_pending),
+                isCompleted = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name,
                 isLast = true,
-                isResolved = report.status == ReportStatus.APPROVED
+                isResolved = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name
             )
         }
     }

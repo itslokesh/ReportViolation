@@ -61,6 +61,10 @@ class OtpVerificationViewModel : ViewModel() {
             try {
                 val fullPhone = "+${_uiState.value.countryCode}-${_uiState.value.phoneNumber}"
                 val ok = OtpNetworkBridge.verifyOtp(fullPhone, _uiState.value.otp)
+                if (ok && _uiState.value.name.isNotBlank() && _uiState.value.email.isNotBlank()) {
+                    // Update citizen profile with name/email using the new token
+                    runCatching { OtpNetworkBridge.registerCitizenProfile(fullPhone, _uiState.value.name, _uiState.value.email) }
+                }
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,

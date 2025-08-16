@@ -41,10 +41,7 @@ import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 import com.example.reportviolation.data.model.ViolationReport
 import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.data.model.ViolationType
-import com.example.reportviolation.data.repository.ViolationReportRepository
-import com.example.reportviolation.data.local.AppDatabase
-import com.example.reportviolation.domain.service.DuplicateDetectionService
-import com.example.reportviolation.domain.service.JurisdictionService
+import com.example.reportviolation.data.remote.CitizenReportItem
 import com.example.reportviolation.domain.service.LanguageManager
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryViewModel
 import com.example.reportviolation.utils.getLocalizedViolationTypeName
@@ -404,20 +401,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ReportsTab(padding: PaddingValues, navController: NavController) {
-    val context = LocalContext.current
-    
-    // Initialize database and repository
-    val database = remember { AppDatabase.getDatabase(context) }
-    val duplicateDetectionService = remember { DuplicateDetectionService() }
-    val jurisdictionService = remember { JurisdictionService() }
-    val repository = remember { 
-        ViolationReportRepository(
-            database.violationReportDao(),
-            duplicateDetectionService,
-            jurisdictionService
-        ) 
-    }
-    val viewModel = remember { ReportsHistoryViewModel(repository) }
+    val viewModel = remember { ReportsHistoryViewModel() }
     
     // Collect UI state
     val uiState by viewModel.uiState.collectAsState()
@@ -568,26 +552,27 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                 }
             }
             else -> {
-                val filteredReports = uiState.reports
+                val filteredReports: List<CitizenReportItem> = uiState.reports
                     .filter { report ->
-                        // Status filter
+                        val statusEnum = runCatching {
+                            ReportStatus.valueOf(report.status ?: "PENDING")
+                        }.getOrDefault(ReportStatus.PENDING)
                         val statusMatch = when (selectedFilter) {
-                            "Submitted" -> report.status == ReportStatus.PENDING
-                            "In Progress" -> report.status == ReportStatus.UNDER_REVIEW
-                            "Resolved" -> report.status == ReportStatus.APPROVED
+                            "Submitted" -> statusEnum == ReportStatus.PENDING
+                            "In Progress" -> statusEnum == ReportStatus.UNDER_REVIEW
+                            "Resolved" -> statusEnum == ReportStatus.APPROVED
                             else -> true
                         }
-                        
-                        // Violation type filter
-                        val typeMatch = selectedViolationType?.let { report.violationType == it } ?: true
-                        
+                        val typeMatch = selectedViolationType?.let { sel ->
+                            report.violationTypes?.any { it == sel.name } ?: false
+                        } ?: true
                         statusMatch && typeMatch
                     }
                     .let { reports ->
                         // Sort reports
                         when (sortOrder) {
-                            "Newest First" -> reports.sortedByDescending { it.createdAt }
-                            "Oldest First" -> reports.sortedBy { it.createdAt }
+                            "Newest First" -> reports.sortedByDescending { runCatching { java.time.Instant.parse(it.timestamp) }.getOrNull() }
+                            "Oldest First" -> reports.sortedBy { runCatching { java.time.Instant.parse(it.timestamp) }.getOrNull() }
                             else -> reports
                         }
                     }
@@ -632,7 +617,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                     ) {
                         items(filteredReports) { report ->
                             ReportCardNew(
-                                report = report, 
+                                report = report,
                                 navController = navController,
                                 sourceTab = "reports"
                             )
@@ -1240,7 +1225,7 @@ fun FilterTab(
 }
 
 @Composable
-fun ReportCardNew(report: ViolationReport, navController: NavController, sourceTab: String = "home") {
+fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourceTab: String = "home") {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1264,7 +1249,7 @@ fun ReportCardNew(report: ViolationReport, navController: NavController, sourceT
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Case #${report.id}",
+                    text = report.violationTypes?.joinToString(", ") ?: "Report #${report.id}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -1272,8 +1257,13 @@ fun ReportCardNew(report: ViolationReport, navController: NavController, sourceT
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
+                val displayTime = runCatching {
+                    val instant = java.time.Instant.parse(report.timestamp)
+                    java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.of("Asia/Kolkata"))
+                        .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"))
+                }.getOrDefault(report.timestamp)
                 Text(
-                    text = report.createdAt.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                    text = displayTime,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -1302,13 +1292,13 @@ fun ReportCardNew(report: ViolationReport, navController: NavController, sourceT
                         modifier = Modifier
                             .size(32.dp)
                             .background(
-                                getStatusColor(report.status),
+                                getStatusColor(runCatching { ReportStatus.valueOf(report.status ?: "PENDING") }.getOrDefault(ReportStatus.PENDING)),
                                 shape = RoundedCornerShape(16.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = getStatusIcon(report.status),
+                            imageVector = getStatusIcon(runCatching { ReportStatus.valueOf(report.status ?: "PENDING") }.getOrDefault(ReportStatus.PENDING)),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                             tint = Color.White
@@ -1319,9 +1309,9 @@ fun ReportCardNew(report: ViolationReport, navController: NavController, sourceT
                     
                     // Status text
                     Text(
-                        text = getLocalizedStatusName(report.status, LocalContext.current),
+                        text = getLocalizedStatusName(runCatching { ReportStatus.valueOf(report.status ?: "PENDING") }.getOrDefault(ReportStatus.PENDING), LocalContext.current),
                         style = MaterialTheme.typography.bodySmall,
-                        color = getStatusColor(report.status),
+                        color = getStatusColor(runCatching { ReportStatus.valueOf(report.status ?: "PENDING") }.getOrDefault(ReportStatus.PENDING)),
                         fontWeight = FontWeight.Medium
                     )
                 }

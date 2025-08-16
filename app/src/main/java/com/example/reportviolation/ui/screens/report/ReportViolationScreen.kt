@@ -479,6 +479,8 @@ fun ReportViolationScreen(navController: NavController) {
                                 try {
                                     val parts = resolveAddressParts(context, currentLocation!!, locationAddress)
                                     val ok = ReportBackendBridge.createReport(
+                                        context = context,
+                                        selectedMediaUri = selectedMediaUri,
                                         violationTypes = selectedViolationTypes.map { it.name },
                                         severity = null,
                                         description = "Reported via Android app",
@@ -939,6 +941,10 @@ fun ViolationTypeDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable {
+                                val isSelected = selectedTypes.contains(violationType)
+                                selectedTypes = if (isSelected) selectedTypes - violationType else selectedTypes + violationType
+                            }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

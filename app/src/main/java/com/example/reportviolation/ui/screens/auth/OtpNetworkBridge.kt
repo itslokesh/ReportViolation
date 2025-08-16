@@ -35,6 +35,14 @@ object OtpNetworkBridge {
         return true
     }
 
+    suspend fun registerCitizenProfile(fullPhone: String, name: String, email: String): Boolean {
+        val payload = CitizenRegisterBody(phoneNumber = fullPhone, name = name, email = email)
+        println("API_REGISTER_CITIZEN payload=" + gson.toJson(payload))
+        val res = authApi.registerCitizen(payload)
+        println("API_REGISTER_CITIZEN response=" + gson.toJson(res))
+        return res.success
+    }
+
     suspend fun uploadPhoto(context: Context, uri: android.net.Uri): String? {
         val part = uriToPart(context, uri, "photo")
         val res = uploadApi.uploadPhoto(part)
@@ -50,6 +58,7 @@ object OtpNetworkBridge {
     suspend fun submitReport(body: ReportCreateBody): Boolean {
         println("API_CREATE_REPORT payload=" + gson.toJson(body))
         val res = reportsApi.createReport(body)
+        println("API_CREATE_REPORT response=" + gson.toJson(res))
         return res.success
     }
 }

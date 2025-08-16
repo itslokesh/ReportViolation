@@ -17,6 +17,10 @@ interface AuthApi {
 
     @POST("/api/auth/citizen/verify-otp")
     suspend fun verifyOtp(@Body body: OtpVerifyBody): ApiResponse<CitizenAuthData>
+
+    // Citizen profile registration/update
+    @POST("/api/auth/citizen/register")
+    suspend fun registerCitizen(@Body body: CitizenRegisterBody): ApiResponse<Any>
 }
 
 interface UploadApi {
@@ -33,14 +37,22 @@ interface CitizenReportsApi {
     @POST("/api/citizen/reports")
     suspend fun createReport(@Body body: ReportCreateBody): ApiResponse<Any>
 
+    @Multipart
+    @POST("/api/citizen/reports")
+    suspend fun createReportMultipart(
+        @PartMap fields: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>,
+        @Part photos: okhttp3.MultipartBody.Part? = null,
+        @Part videos: okhttp3.MultipartBody.Part? = null,
+    ): ApiResponse<Any>
+
     @GET("/api/citizen/reports")
     suspend fun listReports(
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 20,
-    ): ApiResponse<Any>
+    ): ApiResponse<ReportsPage>
 
     @GET("/api/citizen/reports/{id}")
-    suspend fun getReport(@Path("id") id: String): ApiResponse<Any>
+    suspend fun getReport(@Path("id") id: String): ApiResponse<CitizenReportDetail>
 }
 
 

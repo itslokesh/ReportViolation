@@ -17,14 +17,18 @@ object ApiClient {
     private val authInterceptor = Interceptor { chain ->
         val req = chain.request()
         val token = TokenStore.accessToken
-        val newReq = if (!token.isNullOrBlank())
+        val newReq = if (!token.isNullOrBlank()) {
+            println("AUTH_INTERCEPTOR add Authorization Bearer tokenPresent=true path=" + req.url.encodedPath)
             req.newBuilder().addHeader("Authorization", "Bearer $token").build()
-        else req
+        } else {
+            println("AUTH_INTERCEPTOR no token path=" + req.url.encodedPath)
+            req
+        }
         chain.proceed(newReq)
     }
 
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BASIC
+        level = HttpLoggingInterceptor.Level.HEADERS
     }
 
     private val baseClient = OkHttpClient.Builder()
