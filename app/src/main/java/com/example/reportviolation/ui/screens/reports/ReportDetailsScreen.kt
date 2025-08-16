@@ -553,7 +553,6 @@ fun TimelineItem(
 }
 
 private fun formatDateTime(dateTime: java.time.LocalDateTime): String {
-    val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy, h:mm a", Locale.ENGLISH)
-    return dateTime.format(formatter)
+    return com.example.reportviolation.utils.DateTimeUtils.formatForUi(dateTime, "MMM dd, yyyy, h:mm a")
 }
 

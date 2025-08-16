@@ -110,7 +110,11 @@ interface ViolationReportDao {
     suspend fun getPendingReportsForSync(): List<ViolationReport>
     
     @Query("UPDATE violation_reports SET status = :status, updatedAt = :timestamp WHERE id = :reportId")
-    suspend fun updateReportStatus(reportId: Long, status: ReportStatus, timestamp: LocalDateTime = LocalDateTime.now())
+    suspend fun updateReportStatus(
+        reportId: Long,
+        status: ReportStatus,
+        timestamp: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime()
+    )
     
     @Query("UPDATE violation_reports SET isDuplicate = :isDuplicate, duplicateGroupId = :groupId, confidenceScore = :score WHERE id = :reportId")
     suspend fun updateDuplicateInfo(reportId: Long, isDuplicate: Boolean, groupId: String?, score: Double?)

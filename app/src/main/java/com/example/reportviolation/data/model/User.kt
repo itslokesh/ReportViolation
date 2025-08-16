@@ -45,8 +45,8 @@ data class User(
     val guestExpiryDate: LocalDateTime? = null,
     
     // Metadata
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdAt: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
+    val updatedAt: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
     val lastLoginAt: LocalDateTime? = null,
     val isActive: Boolean = true
 )
@@ -60,6 +60,6 @@ data class UserSession(
     val currentPincode: String?,
     val latitude: Double?,
     val longitude: Double?,
-    val sessionStartTime: LocalDateTime = LocalDateTime.now(),
+    val sessionStartTime: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
     val isGuestMode: Boolean = false
 ) 

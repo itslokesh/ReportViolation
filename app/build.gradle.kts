@@ -6,6 +6,9 @@ plugins {
 }
 
 android {
+    buildFeatures {
+        buildConfig = true
+    }
     namespace = "com.example.reportviolation"
     compileSdk = 36
 
@@ -31,7 +34,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -54,6 +57,18 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    flavorDimensions += listOf("env")
+
+    productFlavors {
+        create("lan") {
+            dimension = "env"
+            buildConfigField("String", "BASE_URL", "\"http://192.168.29.250:3000\"")
+        }
+        create("emulator") {
+            dimension = "env"
+            buildConfigField("String", "BASE_URL", "\"http://192.168.29.250:3000\"")
         }
     }
 }
@@ -146,4 +161,12 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    // (removed duplicate explicit networking deps; using versions from libs.versions.toml)
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
+    // EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }

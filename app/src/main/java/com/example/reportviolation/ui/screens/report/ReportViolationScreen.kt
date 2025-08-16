@@ -76,6 +76,9 @@ import com.example.reportviolation.ui.components.MediaPreviewDialog
 import com.example.reportviolation.ui.components.ViolationIcon
 import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 import com.example.reportviolation.utils.getLocalizedViolationTypeName
+import com.example.reportviolation.ui.theme.DarkBlue
+import com.example.reportviolation.ui.theme.MediumBlue
+import com.example.reportviolation.ui.theme.LightBlue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -269,85 +272,98 @@ fun ReportViolationScreen(navController: NavController) {
                 LocationPermissionRequest(
                     onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
             // Media Capture Section (Only show if location permission granted)
             if (hasLocationPermission) {
-                // Location indicator with refresh button
-                Row(
+                                // Location indicator with refresh button
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                                                                          Column {
-                              Text(
-                                  text = if (currentLocation != null) stringResource(R.string.location_detected) else stringResource(R.string.getting_location),
-                                  style = MaterialTheme.typography.bodySmall,
-                                  color = MaterialTheme.colorScheme.primary
-                              )
-                              if (locationAddress != null) {
-                                  // Split address by commas and display in multiple lines
-                                  val addressParts = locationAddress!!.split(",").map { it.trim() }
-                                                                     addressParts.forEachIndexed { _, part ->
-                                      if (part.isNotBlank()) {
-                                          Text(
-                                              text = part,
-                                              style = MaterialTheme.typography.bodySmall,
-                                              color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                              maxLines = 1
-                                          )
-                                      }
-                                  }
-                              }
-                          }
-                    }
-                    
-                    // Refresh location button
-                    IconButton(
-                        onClick = { 
-                            isLocationLoading = true
-                            getCurrentLocation(context) { location ->
-                                currentLocation = location
-                                if (location != null) {
-                                    getAddressFromLocation(
-                                        context, 
-                                        location, 
-                                        { address -> locationAddress = address },
-                                        unknownArea,
-                                        unknownCity
-                                    )
-                                }
-                                isLocationLoading = false
-                            }
-                        },
-                        enabled = !isLocationLoading
-                    ) {
-                        if (isLocationLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.refresh_location),
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = DarkBlue
                             )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = if (currentLocation != null) stringResource(R.string.location_detected) else stringResource(R.string.getting_location),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkBlue
+                                )
+                                if (locationAddress != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    // Split address by commas and display in multiple lines
+                                    val addressParts = locationAddress!!.split(",").map { it.trim() }
+                                    addressParts.forEachIndexed { _, part ->
+                                        if (part.isNotBlank()) {
+                                            Text(
+                                                text = part,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Refresh location button
+                        IconButton(
+                            onClick = { 
+                                isLocationLoading = true
+                                getCurrentLocation(context) { location ->
+                                    currentLocation = location
+                                    if (location != null) {
+                                        getAddressFromLocation(
+                                            context, 
+                                            location, 
+                                            { address -> locationAddress = address },
+                                            unknownArea,
+                                            unknownCity
+                                        )
+                                    }
+                                    isLocationLoading = false
+                                }
+                            },
+                            enabled = !isLocationLoading
+                        ) {
+                            if (isLocationLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = DarkBlue
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = stringResource(R.string.refresh_location),
+                                    tint = DarkBlue,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 
                 MediaCaptureSection(
                     selectedMediaUri = selectedMediaUri,
@@ -369,7 +385,7 @@ fun ReportViolationScreen(navController: NavController) {
                     }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // Media Preview Section
                 if (selectedMediaUri != null) {
@@ -378,7 +394,7 @@ fun ReportViolationScreen(navController: NavController) {
                         onRemove = { selectedMediaUri = null }
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     // Violation Type Selection
                     ViolationTypeSection(
@@ -387,7 +403,7 @@ fun ReportViolationScreen(navController: NavController) {
                         onShowDialog = { showViolationTypeDialog = true }
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     // Location Map Section (Below violation types)
                     if (currentLocation != null) {
@@ -425,7 +441,7 @@ fun ReportViolationScreen(navController: NavController) {
                             unknownCity = unknownCity
                         )
                         
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                     } else {
                         // Debug info - show when location is not available
                         Card(
@@ -435,7 +451,7 @@ fun ReportViolationScreen(navController: NavController) {
                             )
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -445,43 +461,72 @@ fun ReportViolationScreen(navController: NavController) {
                                 )
                                 Text(
                                     text = stringResource(R.string.grant_location_permission),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                     }
 
-                    // Submit Button
+                                        // Submit Button
                     val isSubmitEnabled = selectedMediaUri != null && selectedViolationTypes.isNotEmpty() && currentLocation != null
                     
                     Button(
                         onClick = { 
-                            // Submit report with all details
+                            // Submit to backend using required payload shape
                             coroutineScope.launch {
-                                                                                             submitReport(
-                                mediaUri = selectedMediaUri!!,
-                                violationTypes = selectedViolationTypes,
-                                location = currentLocation!!,
-                                address = locationAddress,
-                                navController = navController,
-                                context = context,
-                                unknownCity = unknownCity
-                            )
+                                try {
+                                    val parts = resolveAddressParts(context, currentLocation!!, locationAddress)
+                                    val ok = ReportBackendBridge.createReport(
+                                        violationTypes = selectedViolationTypes.map { it.name },
+                                        severity = null,
+                                        description = "Reported via Android app",
+                                        latitude = currentLocation!!.latitude,
+                                        longitude = currentLocation!!.longitude,
+                                        address = parts.address,
+                                        pincode = parts.pincode,
+                                        city = parts.city,
+                                        district = parts.district,
+                                        state = parts.state,
+                                        isAnonymous = false,
+                                        vehicleNumber = null,
+                                        vehicleType = null,
+                                        vehicleColor = null,
+                                    )
+                                    if (ok) {
+                                        navController.navigate(Screen.ReportsHistory.route) {
+                                            popUpTo(Screen.Dashboard.route) { inclusive = false }
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    println("REPORT_SUBMIT_FAILED error=${e.message}")
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = isSubmitEnabled
+                        enabled = isSubmitEnabled,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DarkBlue,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.submit_report))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send, 
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.submit_report),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                     
                     // Debug info for submit button
                     if (!isSubmitEnabled) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -489,13 +534,15 @@ fun ReportViolationScreen(navController: NavController) {
                             )
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp)
+                                modifier = Modifier.padding(16.dp)
                             ) {
                                 Text(
                                     text = stringResource(R.string.submit_button_requirements),
                                     style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "• ${stringResource(R.string.evidence)}: ${if (selectedMediaUri != null) "✓" else "✗"}",
                                     style = MaterialTheme.typography.bodySmall,
@@ -544,27 +591,27 @@ fun LocationPermissionRequest(
         )
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = Icons.Default.LocationOn,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                modifier = Modifier.size(56.dp),
+                tint = DarkBlue
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Text(
                 text = stringResource(R.string.location_access_required),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = DarkBlue,
                 textAlign = TextAlign.Center
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
                 text = stringResource(R.string.location_permission_message),
@@ -573,16 +620,21 @@ fun LocationPermissionRequest(
                 textAlign = TextAlign.Center
             )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             
             Button(
                 onClick = onRequestPermission,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = DarkBlue,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(stringResource(R.string.allow_location_access))
+                Text(
+                    stringResource(R.string.allow_location_access),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
@@ -595,17 +647,18 @@ fun MediaCaptureSection(
     onVideoClick: () -> Unit
 ) {
     Column {
-        Text(
-            text = stringResource(R.string.capture_evidence),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                text = stringResource(R.string.capture_evidence),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = DarkBlue
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
         
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Photo Capture Button
             Card(
@@ -616,21 +669,21 @@ fun MediaCaptureSection(
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = DarkBlue
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                                                    text = stringResource(R.string.photo),
-                        style = MaterialTheme.typography.titleMedium,
+                        text = stringResource(R.string.photo),
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = DarkBlue
                     )
                 }
             }
@@ -644,21 +697,21 @@ fun MediaCaptureSection(
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.Videocam,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        tint = MediumBlue
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.record_video),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MediumBlue
                     )
                 }
             }
@@ -683,36 +736,38 @@ fun MediaPreviewSection(
         )
     }
     
-    Card(
+        Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                                            text = if (isVideo) stringResource(R.string.video) else stringResource(R.string.photo),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                            Text(
+                text = if (isVideo) stringResource(R.string.video) else stringResource(R.string.photo),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DarkBlue
+            )
                 
                 IconButton(onClick = onRemove) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = stringResource(R.string.remove_media),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             // Media thumbnail with aspect ratio preservation
             Box(
@@ -799,10 +854,11 @@ fun ViolationTypeSection(
         Text(
             text = stringResource(R.string.violation_types_section),
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = DarkBlue
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
         Card(
             onClick = onShowDialog,
@@ -812,7 +868,7 @@ fun ViolationTypeSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(24.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -820,36 +876,39 @@ fun ViolationTypeSection(
                     Icon(
                         imageVector = Icons.Default.Category,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = DarkBlue,
+                        modifier = Modifier.size(24.dp)
                     )
                     
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(20.dp))
                     
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (selectedTypes.isEmpty()) stringResource(R.string.select_violation_type) else "${selectedTypes.size} ${stringResource(R.string.violation_selected)}",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                             color = if (selectedTypes.isNotEmpty()) 
-                                MaterialTheme.colorScheme.onSurface 
+                                DarkBlue
                             else 
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         if (selectedTypes.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = selectedTypes.joinToString(", ") { getLocalizedViolationTypeName(it, context) },
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                 maxLines = 2
                             )
                         }
                     }
                     
-                                         Icon(
-                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                         contentDescription = null,
-                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                     )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = DarkBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -864,10 +923,15 @@ fun ViolationTypeDialog(
     val context = LocalContext.current
     var selectedTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
     
-    AlertDialog(
+        AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-                                    Text(stringResource(R.string.select_violation_type))
+            Text(
+                stringResource(R.string.select_violation_type),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = DarkBlue
+            )
         },
         text = {
             Column {
@@ -875,7 +939,7 @@ fun ViolationTypeDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
@@ -886,18 +950,23 @@ fun ViolationTypeDialog(
                                 } else {
                                     selectedTypes - violationType
                                 }
-                            }
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = DarkBlue,
+                                uncheckedColor = MaterialTheme.colorScheme.outline
+                            )
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         ViolationIcon(
                             violationType = violationType,
                             displayMode = ViolationIconDisplayMode.SELECTION,
                             isSelected = selectedTypes.contains(violationType)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         Text(
                             text = getLocalizedViolationTypeName(violationType, context),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -908,12 +977,21 @@ fun ViolationTypeDialog(
                 onClick = { onTypeSelected(selectedTypes) },
                 enabled = selectedTypes.isNotEmpty()
             ) {
-                Text(stringResource(R.string.confirm_selection))
+                Text(
+                    stringResource(R.string.confirm_selection),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = DarkBlue
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel_selection))
+                Text(
+                    stringResource(R.string.cancel_selection),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     )
@@ -936,22 +1014,23 @@ fun LocationMapSection(
     LaunchedEffect(location) {
         currentLocation.value = location
     }
-    Column {
+        Column {
         Text(
             text = stringResource(R.string.violation_location),
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = DarkBlue
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-                                text = stringResource(R.string.use_two_fingers_set_location),
+            text = stringResource(R.string.use_two_fingers_set_location),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -960,7 +1039,7 @@ fun LocationMapSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(24.dp)
             ) {
                 // Google Maps with fixed pin
                 GoogleMapWithPin(
@@ -971,60 +1050,65 @@ fun LocationMapSection(
                     unknownCity = unknownCity
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Location coordinates display
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = DarkBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = stringResource(
+                                    R.string.latitude_longitude_format,
+                                    currentLocation.value.latitude,
+                                    currentLocation.value.longitude
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Column {
+                            if (address != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = stringResource(
-                                        R.string.latitude_longitude_format,
-                                        currentLocation.value.latitude,
-                                        currentLocation.value.longitude
-                                    ),
+                                    text = "📍 $address",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    color = DarkBlue,
+                                    maxLines = 2
                                 )
-                                if (address != null) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "📍 $address",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        maxLines = 2
-                                    )
-                                }
                             }
                         }
-                        
-                        // Add explanation about the fixed pin behavior
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                            )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Add explanation about the fixed pin behavior
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(
-                                modifier = Modifier.padding(8.dp)
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Text(
                                     text = stringResource(R.string.red_pin_fixed_center),
@@ -1038,23 +1122,28 @@ fun LocationMapSection(
                                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                                 )
                             }
+                            
+                            // Full Map Button
+                            Button(
+                                onClick = onFullMapRequest,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MediumBlue,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Fullscreen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    stringResource(R.string.full_screen),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                    }
-
-                    // Full Map Button
-                    Button(
-                        onClick = onFullMapRequest,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Fullscreen,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.full_screen))
                     }
                 }
             }
@@ -1241,7 +1330,7 @@ private suspend fun submitReport(
         violationType = primaryViolationType,
         severity = SeverityLevel.MAJOR, // TODO: Determine based on violation type
         description = "Reported violations: ${violationTypes.joinToString(", ") { getLocalizedViolationTypeName(it, context) }}",
-        timestamp = LocalDateTime.now(),
+        timestamp = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
         latitude = location.latitude,
         longitude = location.longitude,
         address = address ?: "Location: ${location.latitude.format(6)}, ${location.longitude.format(6)}",
@@ -1281,7 +1370,115 @@ private suspend fun submitReport(
     }
 }
 
+// Mirror a successful backend submission into local Room so previous datastore remains in sync.
+private suspend fun saveLocalReportMirror(
+    context: android.content.Context,
+    mediaUri: String,
+    uploadedPhotoUrl: String?,
+    uploadedVideoUrl: String?,
+    violationTypes: Set<com.example.reportviolation.data.model.ViolationType>,
+    location: com.google.android.gms.maps.model.LatLng,
+    address: String?,
+    unknownCity: String,
+) {
+    val database = com.example.reportviolation.data.local.AppDatabase.getDatabase(context)
+    val duplicateDetectionService = com.example.reportviolation.domain.service.DuplicateDetectionService()
+    val jurisdictionService = com.example.reportviolation.domain.service.JurisdictionService()
+    val repository = com.example.reportviolation.data.repository.ViolationReportRepository(
+        database.violationReportDao(),
+        duplicateDetectionService,
+        jurisdictionService
+    )
+
+    val primaryViolationType = violationTypes.firstOrNull() ?: com.example.reportviolation.data.model.ViolationType.OTHERS
+    val report = com.example.reportviolation.data.model.ViolationReport(
+        reporterId = "current_user",
+        reporterPhone = "",
+        reporterCity = unknownCity,
+        reporterPincode = "",
+        violationType = primaryViolationType,
+        severity = com.example.reportviolation.data.model.SeverityLevel.MAJOR,
+        description = "(Mirrored) Reported violations: ${violationTypes.joinToString(", ") { it.displayName }}",
+        timestamp = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
+        latitude = location.latitude,
+        longitude = location.longitude,
+        address = address ?: "",
+        pincode = "",
+        city = unknownCity,
+        district = unknownCity,
+        state = unknownCity,
+        vehicleNumber = null,
+        vehicleType = null,
+        vehicleColor = null,
+        photoUri = uploadedPhotoUrl ?: if (!mediaUri.endsWith(".mp4") && !mediaUri.contains("video")) mediaUri else null,
+        videoUri = uploadedVideoUrl ?: if (mediaUri.endsWith(".mp4") || mediaUri.contains("video")) mediaUri else null,
+        mediaMetadata = null,
+        status = com.example.reportviolation.data.model.ReportStatus.PENDING,
+        isDuplicate = false,
+        duplicateGroupId = null,
+        confidenceScore = null,
+        reviewerId = null,
+        reviewTimestamp = null,
+        reviewNotes = null,
+        challanIssued = false,
+        challanNumber = null,
+        pointsAwarded = 0,
+        isFirstReporter = false,
+        createdAt = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
+        updatedAt = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
+        isAnonymous = false
+    )
+
+    try {
+        repository.createReport(report)
+    } catch (_: Exception) {
+        // Best-effort mirror; ignore failures
+    }
+}
+
 private fun Double.format(digits: Int) = "%.${digits}f".format(this)
+
+private data class AddressParts(
+    val address: String,
+    val pincode: String,
+    val city: String,
+    val district: String,
+    val state: String,
+)
+
+private fun resolveAddressParts(
+    context: android.content.Context,
+    latLng: LatLng,
+    fallbackAddress: String?
+): AddressParts {
+    val geocoder = Geocoder(context)
+    return try {
+        val list = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+        val a = list?.firstOrNull()
+        val addressLine = when {
+            !fallbackAddress.isNullOrBlank() -> fallbackAddress
+            a?.getAddressLine(0)?.length ?: 0 >= 5 -> a?.getAddressLine(0) ?: "Unknown"
+            else -> listOfNotNull(a?.subLocality, a?.thoroughfare, a?.locality, a?.adminArea)
+                .filter { !it.isNullOrBlank() }
+                .joinToString(", ")
+        }
+        AddressParts(
+            address = addressLine.take(200).padEnd(5, ' ').trim(),
+            pincode = (a?.postalCode ?: "000000").padEnd(6, '0').take(6),
+            city = (a?.locality ?: a?.adminArea ?: "NA").take(50).padEnd(2, ' ').trim(),
+            district = (a?.subAdminArea ?: a?.locality ?: "NA").take(50).padEnd(2, ' ').trim(),
+            state = (a?.adminArea ?: "NA").take(50).padEnd(2, ' ').trim(),
+        )
+    } catch (_: Exception) {
+        AddressParts(
+            address = (fallbackAddress ?: "Location: ${latLng.latitude.format(6)}, ${latLng.longitude.format(6)}").take(200).padEnd(5, ' ').trim(),
+            pincode = "000000",
+            city = "NA",
+            district = "NA",
+            state = "NA",
+        )
+    }
+}
 
 private fun getCurrentLocation(
     context: android.content.Context,

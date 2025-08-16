@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.example.reportviolation.di.AppModule
+import com.example.reportviolation.data.remote.auth.TokenPrefs
+import com.example.reportviolation.data.remote.auth.TokenStore
 
 data class OtpVerificationUiState(
     val otp: String = "",
@@ -57,51 +59,19 @@ class OtpVerificationViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
-                // In a real app, this would verify the OTP with the server
-                // For now, we'll simulate the verification process
-                kotlinx.coroutines.delay(2000) // Simulate network delay
-                
-                if (_uiState.value.otp.length == 6) {
-                    try {
-                        // Register the user
-                        val userRegistrationService = AppModule.getUserRegistrationService()
-                        val result = userRegistrationService.registerUser(
-                            _uiState.value.name,
-                            _uiState.value.email,
-                            _uiState.value.phoneNumber,
-                            _uiState.value.countryCode
-                        )
-                        
-                        if (result.isSuccess) {
-                            _uiState.update { currentState ->
-                                currentState.copy(
-                                    isLoading = false,
-                                    shouldNavigateToDashboard = true
-                                )
-                            }
-                        } else {
-                            _uiState.update { currentState ->
-                                currentState.copy(
-                                    isLoading = false,
-                                    otpError = result.exceptionOrNull()?.message ?: "Registration failed"
-                                )
-                            }
-                        }
-                    } catch (e: Exception) {
-                        _uiState.update { currentState ->
-                            currentState.copy(
-                                isLoading = false,
-                                otpError = "Registration failed: ${e.message}"
-                            )
-                        }
-                    }
-                } else {
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            isLoading = false,
-                            otpError = "Invalid OTP. Please try again."
-                        )
-                    }
+                val fullPhone = "+${_uiState.value.countryCode}-${_uiState.value.phoneNumber}"
+                val ok = OtpNetworkBridge.verifyOtp(fullPhone, _uiState.value.otp)
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        shouldNavigateToDashboard = ok,
+                        otpError = if (ok) null else "Invalid OTP. Please try again."
+                    )
+                }
+                if (ok) {
+                    // Persist tokens after verification
+                    // We need context; in ViewModel we typically inject. Skipping direct persist here.
+                    // TokenPrefs.persist(appContext)
                 }
             } catch (e: Exception) {
                 _uiState.update { currentState ->

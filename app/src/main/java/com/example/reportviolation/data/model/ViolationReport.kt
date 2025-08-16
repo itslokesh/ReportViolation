@@ -58,8 +58,8 @@ data class ViolationReport(
     val isFirstReporter: Boolean = false,
     
     // Metadata
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdAt: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
+    val updatedAt: LocalDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime(),
     val isAnonymous: Boolean = false
 )
 

@@ -86,21 +86,17 @@ class SignupViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
-                // In a real app, this would send OTP to the phone number
-                // For now, we'll simulate the process
-                kotlinx.coroutines.delay(1500) // Simulate network delay
-                
+                val fullPhone = "+${_uiState.value.selectedCountry.dialCode}-${_uiState.value.phoneNumber}"
+                val ok = OtpNetworkBridge.sendOtp(fullPhone)
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
-                        shouldNavigateToOtp = true
+                        shouldNavigateToOtp = ok
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false
-                    )
+                    currentState.copy(isLoading = false)
                 }
             }
         }

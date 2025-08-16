@@ -117,7 +117,15 @@ class ViolationReportRepository(
     
     // Duplicate management
     suspend fun markAsDuplicate(reportId: Long, duplicateOfId: Long) {
-        violationReportDao.updateReportStatus(reportId, ReportStatus.DUPLICATE, LocalDateTime.now())
-        violationReportDao.updateReportStatus(duplicateOfId, ReportStatus.APPROVED, LocalDateTime.now())
+        violationReportDao.updateReportStatus(
+            reportId,
+            ReportStatus.DUPLICATE,
+            java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime()
+        )
+        violationReportDao.updateReportStatus(
+            duplicateOfId,
+            ReportStatus.APPROVED,
+            java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime()
+        )
     }
 } 

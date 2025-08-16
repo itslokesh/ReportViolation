@@ -10,6 +10,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
+import com.example.reportviolation.data.remote.auth.TokenPrefs
 import com.example.reportviolation.ui.theme.DarkBlue
 import com.example.reportviolation.ui.navigation.Screen
 
@@ -23,6 +25,7 @@ fun OtpVerificationScreen(
     viewModel: OtpVerificationViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     
     // Initialize signup data when the screen is first displayed
     LaunchedEffect(name, email, phone, country) {
@@ -170,6 +173,8 @@ fun OtpVerificationScreen(
     // Handle navigation to dashboard on successful verification
     LaunchedEffect(uiState.shouldNavigateToDashboard) {
         if (uiState.shouldNavigateToDashboard) {
+            // Persist tokens now that verification succeeded
+            try { TokenPrefs.persist(context) } catch (_: Throwable) {}
             navController.navigate(Screen.Dashboard.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
