@@ -8,6 +8,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.example.reportviolation.R
 import com.example.reportviolation.data.model.ViolationType
+import com.example.reportviolation.data.remote.ApiClient
+import com.example.reportviolation.data.remote.CitizenReportItem
+import com.example.reportviolation.data.remote.CitizenReportsApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 
 class DashboardViewModel : ViewModel() {
     
@@ -22,43 +28,69 @@ class DashboardViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
-                
-                // For now, use mock data since we don't have proper DI setup
-                // In a real app, this would come from the repository
-                val mockStats = mapOf(
-                    "total" to 15,
-                    "approved" to 8,
-                    "pending" to 4,
-                    "rejected" to 3
-                )
-                
-                val totalReports = mockStats["total"] ?: 0
-                val approvedReports = mockStats["approved"] ?: 0
-                val pendingReports = mockStats["pending"] ?: 0
-                
-                // Mock recent reports
-                val recentReports = listOf(
+
+                val base = ApiClient.retrofit(OkHttpClient.Builder().build())
+                val authClient = ApiClient.buildClientWithAuthenticator(base.create(com.example.reportviolation.data.remote.AuthApi::class.java))
+                val reportsApi = ApiClient.retrofit(authClient).create(CitizenReportsApi::class.java)
+
+                // Fetch first page to get pagination info
+                val first = reportsApi.listReports(page = 1, limit = 50)
+                if (!(first.success)) throw IllegalStateException(first.error ?: first.message ?: "Failed to load reports")
+                val firstPage = first.data ?: throw IllegalStateException("Empty response")
+
+                // Accumulate all pages if needed for accurate counts
+                val allItems = mutableListOf<CitizenReportItem>()
+                allItems.addAll(firstPage.reports)
+                val totalPages = firstPage.pagination.pages
+                if (totalPages > 1) {
+                    for (p in 2..totalPages) {
+                        val pageRes = reportsApi.listReports(page = p, limit = 50)
+                        if (pageRes.success) {
+                            pageRes.data?.reports?.let { allItems.addAll(it) }
+                        }
+                    }
+                }
+
+                val totalReports = firstPage.pagination.total
+                val approvedReports = allItems.count { (it.status ?: "").equals("APPROVED", ignoreCase = true) }
+                val inProgressReports = allItems.count { (it.status ?: "").equals("UNDER_REVIEW", ignoreCase = true) }
+
+                // Build latest 3 recent reports
+                val latestItems = allItems
+                    .sortedByDescending { runCatching { java.time.Instant.parse(it.timestamp) }.getOrNull() }
+                    .take(3)
+
+                // Fetch details for the latest 3 if primary type is missing
+                val latest3 = latestItems.map { item ->
+                    val primaryTypeStr = item.violationTypes?.firstOrNull() ?: run {
+                        val detail = runCatching { reportsApi.getReport(item.id).data }.getOrNull()
+                        val fromMeta = runCatching {
+                            val json = detail?.mediaMetadata
+                            if (!json.isNullOrBlank()) {
+                                val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+                                obj.getAsJsonArray("violationTypes")?.firstOrNull()?.asString
+                            } else null
+                        }.getOrNull()
+                        fromMeta ?: detail?.violationType
+                    }
+
                     RecentReport(
-                        violationType = ViolationType.SPEED_VIOLATION,
-                        date = "Dec 15"
-                    ),
-                    RecentReport(
-                        violationType = ViolationType.SIGNAL_JUMPING,
-                        date = "Dec 14"
-                    ),
-                    RecentReport(
-                        violationType = ViolationType.WRONG_SIDE_DRIVING,
-                        date = "Dec 12"
+                        id = item.id,
+                        violationType = mapRemoteTypeToEnum(primaryTypeStr),
+                        date = runCatching {
+                            val ist = java.time.ZonedDateTime.ofInstant(java.time.Instant.parse(item.timestamp), java.time.ZoneId.of("Asia/Kolkata"))
+                            ist.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
+                        }.getOrDefault("")
                     )
-                )
-                
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     totalReports = totalReports,
                     approvedReports = approvedReports,
-                    pendingReports = pendingReports,
+                    pendingReports = inProgressReports,
                     totalPoints = 1250,
-                    recentReports = recentReports
+                    recentReports = latest3
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -66,6 +98,30 @@ class DashboardViewModel : ViewModel() {
                     error = e.message
                 )
             }
+        }
+    }
+
+    private fun mapRemoteTypeToEnum(remote: String?): ViolationType {
+        if (remote.isNullOrBlank()) return ViolationType.OTHERS
+        // Direct enum match
+        runCatching { return ViolationType.valueOf(remote.trim().uppercase()) }.getOrNull()
+        // Display name match
+        ViolationType.values().firstOrNull { it.displayName.equals(remote, ignoreCase = true) }?.let { return it }
+        // Normalize common aliases
+        val norm = remote.trim().lowercase()
+            .replace('-', ' ')
+            .replace('_', ' ')
+            .replace("  ", " ")
+        return when {
+            "wrong" in norm && "side" in norm -> ViolationType.WRONG_SIDE_DRIVING
+            ("no" in norm && "parking" in norm) || ("parking" in norm) -> ViolationType.NO_PARKING_ZONE
+            ("signal" in norm && ("jump" in norm || "violation" in norm)) -> ViolationType.SIGNAL_JUMPING
+            ("speed" in norm) || ("speeding" in norm) -> ViolationType.SPEED_VIOLATION
+            ("helmet" in norm) || ("seatbelt" in norm) -> ViolationType.HELMET_SEATBELT_VIOLATION
+            ("mobile" in norm) || ("phone" in norm) -> ViolationType.MOBILE_PHONE_USAGE
+            ("lane" in norm && ("cut" in norm || "change" in norm)) -> ViolationType.LANE_CUTTING
+            ("drunk" in norm) || ("intox" in norm) -> ViolationType.DRUNK_DRIVING_SUSPECTED
+            else -> ViolationType.OTHERS
         }
     }
     
@@ -87,6 +143,7 @@ data class DashboardUiState(
 )
 
 data class RecentReport(
+    val id: String,
     val violationType: ViolationType,
     val date: String
-) 
+)

@@ -60,6 +60,7 @@ fun DashboardScreen(
     val viewModel = remember { DashboardViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(initialTab) }
+    var reportsInitialFilter by remember { mutableStateOf<String?>(null) }
     
     // Note: Back navigation preservation will be handled by the navigation system
     // The selectedTab state will be maintained automatically
@@ -141,8 +142,11 @@ fun DashboardScreen(
         }
     ) { padding ->
         when (selectedTab) {
-            0 -> HomeTab(padding, navController, uiState)
-            1 -> ReportsTab(padding, navController)
+            0 -> HomeTab(padding, navController, uiState, onNavigateToReports = { filter ->
+                reportsInitialFilter = filter
+                selectedTab = 1
+            })
+            1 -> ReportsTab(padding, navController, initialFilter = reportsInitialFilter)
             2 -> NotificationsTab(padding)
             3 -> ProfileTab(padding, navController)
         }
@@ -151,7 +155,12 @@ fun DashboardScreen(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun HomeTab(padding: PaddingValues, navController: NavController, uiState: DashboardUiState) {
+fun HomeTab(
+    padding: PaddingValues,
+    navController: NavController,
+    uiState: DashboardUiState,
+    onNavigateToReports: (String) -> Unit = {}
+) {
     // Pull to refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoading,
@@ -196,19 +205,25 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
                         value = uiState.totalReports.toString(),
                         label = stringResource(R.string.violations_reported),
                         backgroundColor = DarkBlue,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        value = uiState.approvedReports.toString(),
-                        label = stringResource(R.string.filter_resolved),
-                        backgroundColor = MediumBlue,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToReports("Submitted") }
                     )
                     StatCard(
                         value = uiState.pendingReports.toString(),
                         label = stringResource(R.string.filter_in_progress),
+                        backgroundColor = MediumBlue,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToReports("In Progress") }
+                    )
+                    StatCard(
+                        value = uiState.approvedReports.toString(),
+                        label = stringResource(R.string.filter_resolved),
                         backgroundColor = LightBlue,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToReports("Resolved") }
                     )
                 }
             }
@@ -358,8 +373,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // For demo purposes, navigate to a sample report with ID 1
-                navController.navigate("${Screen.ReportDetails.route}/1")
+                navController.navigate("${Screen.ReportDetails.route}/${report.id}")
             },
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -384,7 +398,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
             // Violation Details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                                            text = getLocalizedViolationTypeName(report.violationType, context),
+                    text = getLocalizedViolationTypeName(report.violationType, context),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -403,14 +417,14 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ReportsTab(padding: PaddingValues, navController: NavController) {
+fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilter: String? = null) {
     val viewModel = remember { ReportsHistoryViewModel() }
     
     // Collect UI state
     val uiState by viewModel.uiState.collectAsState()
     
     // Filter and sort state
-    var selectedFilter by remember { mutableStateOf("All") }
+    var selectedFilter by remember { mutableStateOf(initialFilter ?: "All") }
     var selectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
     var selectedViolationTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
     var sortOrder by remember { mutableStateOf("Newest First") }
