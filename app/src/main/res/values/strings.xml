@@ -7,12 +7,16 @@
     <string name="settings_notifications">Notifications</string>
     <string name="settings_accessibility">Accessibility</string>
     <string name="settings_reward_points">Reward Points</string>
+    <string name="send_feedback">Send Feedback</string>
     <string name="settings_logout">Logout</string>
     <string name="settings_government_notifications">Government</string>
     <string name="settings_service_updates">Service Updates</string>
     <string name="settings_offers">Offers</string>
     <string name="settings_text_size">Aa Text size</string>
     <string name="settings_color_contrast">Color contrast</string>
+    <string name="feedbacks_title">Feedbacks</string>
+    <string name="submit_feedback">Submit Feedback</string>
+    <string name="show_feedbacks">Show Feedbacks</string>
     <string name="settings_screen_reader">Screen reader</string>
     <string name="settings_language_english">English</string>
     <string name="settings_language_tamil">Tamil</string>

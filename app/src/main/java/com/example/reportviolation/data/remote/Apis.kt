@@ -59,4 +59,15 @@ interface CitizenReportsApi {
     suspend fun getReport(@Path("id") id: String): ApiResponse<CitizenReportDetail>
 }
 
+interface FeedbackApi {
+    @POST("/api/feedback/submit")
+    suspend fun submit(@Body body: FeedbackSubmitRequest): ApiResponse<Any>
+
+    @GET("/api/feedback/my-feedback")
+    suspend fun listMine(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+    ): ApiResponse<FeedbackListPage>
+}
+
 

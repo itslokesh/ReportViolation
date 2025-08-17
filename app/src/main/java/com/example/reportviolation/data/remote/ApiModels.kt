@@ -146,4 +146,64 @@ data class Reviewer(
     val badgeNumber: String? = null,
 )
 
+// Feedback (submit)
+data class FeedbackSubmitRequest(
+    val feedbackType: String, // APP_FEEDBACK, REPORT_FEEDBACK, SERVICE_FEEDBACK, FEATURE_REQUEST
+    val category: String = "SUGGESTION", // UI_UX, BUG, PERFORMANCE, SUGGESTION, COMPLAINT, PRAISE
+    val title: String,
+    val description: String,
+    val rating: Int? = null, // 1..5
+    val priority: String = "MEDIUM", // LOW, MEDIUM, HIGH, CRITICAL
+    val isAnonymous: Boolean = false,
+    val contactEmail: String? = null,
+    val contactPhone: String? = null,
+    val reportId: Long? = null,
+    val attachments: List<String>? = null,
+    val metadata: Map<String, String>? = null,
+)
+
+// Feedback listing response
+data class FeedbackListPage(
+    val feedback: List<FeedbackItem> = emptyList(),
+    val pagination: Pagination,
+)
+
+data class FeedbackItem(
+    val id: String,
+    val feedbackType: String? = null,
+    val category: String? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val rating: Int? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val isAnonymous: Boolean? = null,
+    val contactEmail: String? = null,
+    val contactPhone: String? = null,
+    val attachments: String? = null,
+    val metadata: String? = null,
+    val assignedTo: String? = null,
+    val resolutionNotes: String? = null,
+    val resolvedAt: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val responses: List<FeedbackResponse>? = null,
+)
+
+data class FeedbackResponse(
+    val id: String,
+    val feedbackId: String? = null,
+    val responderId: String? = null,
+    val message: String? = null,
+    val isInternal: Boolean? = null,
+    val createdAt: String? = null,
+    val responder: Responder? = null,
+)
+
+data class Responder(
+    val id: String? = null,
+    val name: String? = null,
+    val role: String? = null,
+)
+
 

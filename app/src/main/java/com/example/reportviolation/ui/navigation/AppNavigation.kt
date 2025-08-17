@@ -17,6 +17,8 @@ import com.example.reportviolation.ui.screens.reports.ReportsHistoryScreen
 import com.example.reportviolation.ui.screens.reports.ReportDetailsScreen
 import com.example.reportviolation.ui.screens.rewards.RewardsScreen
 import com.example.reportviolation.ui.screens.splash.SplashScreen
+import com.example.reportviolation.ui.screens.settings.FeedbackScreen
+import com.example.reportviolation.ui.screens.settings.FeedbackListScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController = androidx.navigation.compose.rememberNavController()) {
@@ -123,6 +125,12 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
         composable(Screen.Rewards.route) {
             RewardsScreen(navController)
         }
+        composable(Screen.Feedback.route) {
+            FeedbackScreen(navController)
+        }
+        composable(Screen.FeedbackList.route) {
+            FeedbackListScreen(navController)
+        }
     }
 }
 
@@ -138,4 +146,6 @@ sealed class Screen(val route: String) {
     object ReportsHistory : Screen("reports_history")
     object ReportDetails : Screen("report_details")
     object Rewards : Screen("rewards")
+    object Feedback : Screen("feedback")
+    object FeedbackList : Screen("feedback_list")
 } 

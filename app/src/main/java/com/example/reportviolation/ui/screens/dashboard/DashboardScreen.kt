@@ -175,8 +175,11 @@ fun HomeTab(padding: PaddingValues, navController: NavController, uiState: Dashb
         ) {
             // Header
             item {
+                val settingsVm = remember { com.example.reportviolation.ui.screens.settings.SettingsViewModel() }
+                val settings by settingsVm.uiState.collectAsState()
+                LaunchedEffect(Unit) { settingsVm.loadUserSettings() }
                 Text(
-                    text = stringResource(R.string.home),
+                    text = "Hello, ${settings.userName}",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -832,8 +835,11 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
     ) {
         // Profile Header
         item {
+            val settingsVm = remember { com.example.reportviolation.ui.screens.settings.SettingsViewModel() }
+            val settings by settingsVm.uiState.collectAsState()
+            LaunchedEffect(Unit) { settingsVm.loadUserSettings() }
             ProfileHeader(
-                userName = uiState.userName,
+                userName = settings.userName,
                 onProfileClick = { /* Navigate to profile edit */ }
             )
         }
@@ -855,6 +861,14 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
                 onColorContrastClick = { /* Navigate to color contrast settings */ }
             )
         }
+
+        // Feedbacks Section (Submit Feedback, Show Feedbacks)
+        item {
+            FeedbacksSection(
+                onSubmitFeedback = { navController.navigate(com.example.reportviolation.ui.navigation.Screen.Feedback.route) },
+                onShowFeedbacks = { navController.navigate(com.example.reportviolation.ui.navigation.Screen.FeedbackList.route) }
+            )
+        }
         
         // Reward Points Section
         item {
@@ -862,6 +876,8 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
                 points = uiState.rewardPoints
             )
         }
+
+        // Old feedback button removed; now part of FeedbacksSection
         
         // Logout Button
         item {
@@ -1045,6 +1061,71 @@ fun AccessibilitySection(
                     icon = Icons.Default.Contrast,
                     onClick = onColorContrastClick
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun FeedbacksSection(
+    onSubmitFeedback: () -> Unit,
+    onShowFeedbacks: () -> Unit
+) {
+    Column {
+        // Section Title
+        Text(
+            text = stringResource(com.example.reportviolation.R.string.feedbacks_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSubmitFeedback() }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(com.example.reportviolation.R.string.submit_feedback),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Black,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = DarkBlue
+                    )
+                }
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onShowFeedbacks() }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(com.example.reportviolation.R.string.show_feedbacks),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Black,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = DarkBlue
+                    )
+                }
             }
         }
     }

@@ -1,6 +1,8 @@
 package com.example.reportviolation.ui.screens.settings
 
 import android.content.Context
+import com.example.reportviolation.data.remote.ApiClient
+import com.example.reportviolation.data.remote.AuthApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reportviolation.domain.service.LanguageManager
@@ -18,6 +20,7 @@ data class SettingsUiState(
     val serviceUpdates: Boolean = true,
     val offers: Boolean = true,
     val rewardPoints: String = "1,250",
+    val showFeedback: Boolean = true,
     val isLoading: Boolean = false,
     val error: String? = null,
     val showLanguageConfirmationDialog: Boolean = false,
@@ -116,10 +119,16 @@ class SettingsViewModel : ViewModel() {
     }
     
     fun loadUserSettings() {
-        // TODO: Load user settings from SharedPreferences or database
-        // This would typically involve:
-        // 1. Loading user profile information
-        // 2. Loading saved preferences
-        // 3. Loading reward points
+        viewModelScope.launch {
+            runCatching {
+                val base = ApiClient.retrofit(okhttp3.OkHttpClient.Builder().build())
+                val client = ApiClient.buildClientWithAuthenticator(base.create(AuthApi::class.java))
+                val api = ApiClient.retrofit(client).create(AuthApi::class.java)
+                val res = api.getCitizenProfile()
+                val profile = res.data
+                val name = profile?.name?.takeIf { !it.isNullOrBlank() } ?: "Citizen"
+                _uiState.update { it.copy(userName = name) }
+            }
+        }
     }
 }
