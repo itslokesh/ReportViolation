@@ -34,8 +34,15 @@ class ReportsHistoryViewModel : ViewModel() {
         loadReports(reset = true)
     }
 
+    private var lastLoadedAtMs: Long = 0L
+    private val minReloadIntervalMs: Long = 30_000 // 30 seconds client-side throttle
+
     fun loadReports(reset: Boolean = false) {
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (!reset && (now - lastLoadedAtMs) < minReloadIntervalMs && _uiState.value.reports.isNotEmpty()) {
+                return@launch
+            }
             val nextPage = if (reset) 1 else _uiState.value.page
             _uiState.value = _uiState.value.copy(isLoading = true, error = null, page = nextPage)
             try {
@@ -47,6 +54,7 @@ class ReportsHistoryViewModel : ViewModel() {
                 val items = if (reset) incoming else _uiState.value.reports + incoming
                 val pages = res.data?.pagination?.pages ?: nextPage
                 val hasMore = nextPage < pages
+                lastLoadedAtMs = System.currentTimeMillis()
                 _uiState.value = _uiState.value.copy(
                     reports = items,
                     isLoading = false,

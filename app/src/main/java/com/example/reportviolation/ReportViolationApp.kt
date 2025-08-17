@@ -13,5 +13,10 @@ class ReportViolationApp : Application() {
         try {
             TokenPrefs.init(this)
         } catch (_: Throwable) { }
+
+        // Schedule periodic cache cleanup to prevent excessive storage/RAM usage
+        try {
+            com.example.reportviolation.data.remote.CacheManager.schedulePeriodicCleanup(this)
+        } catch (_: Throwable) { }
     }
 } 

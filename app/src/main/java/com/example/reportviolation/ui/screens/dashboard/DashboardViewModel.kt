@@ -24,9 +24,16 @@ class DashboardViewModel : ViewModel() {
         loadDashboardData()
     }
     
+    private var lastLoadedAtMs: Long = 0L
+    private val minReloadIntervalMs: Long = 30_000 // 30 seconds client-side throttle
+
     private fun loadDashboardData() {
         viewModelScope.launch {
             try {
+                val now = System.currentTimeMillis()
+                if ((now - lastLoadedAtMs) < minReloadIntervalMs && _uiState.value.recentReports.isNotEmpty()) {
+                    return@launch
+                }
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
                 val base = ApiClient.retrofit(OkHttpClient.Builder().build())
@@ -81,6 +88,7 @@ class DashboardViewModel : ViewModel() {
                     )
                 }
 
+                lastLoadedAtMs = System.currentTimeMillis()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     totalReports = totalReports,

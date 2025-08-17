@@ -118,7 +118,19 @@ class SettingsViewModel : ViewModel() {
         }
     }
     
-    fun loadUserSettings() {
+    // Simple in-memory memoization to avoid repeated profile fetches when toggling tabs
+    private var lastProfileFetchMs: Long = 0L
+    private var cachedUserName: String? = null
+    private val profileStaleAfterMs: Long = 5 * 60 * 1000 // 5 minutes
+
+    fun loadUserSettings(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        val cached = cachedUserName
+        val freshEnough = (now - lastProfileFetchMs) < profileStaleAfterMs
+        if (!force && cached != null && freshEnough) {
+            _uiState.update { it.copy(userName = cached) }
+            return
+        }
         viewModelScope.launch {
             runCatching {
                 val base = ApiClient.retrofit(okhttp3.OkHttpClient.Builder().build())
@@ -127,7 +139,12 @@ class SettingsViewModel : ViewModel() {
                 val res = api.getCitizenProfile()
                 val profile = res.data
                 val name = profile?.name?.takeIf { !it.isNullOrBlank() } ?: "Citizen"
+                cachedUserName = name
+                lastProfileFetchMs = System.currentTimeMillis()
                 _uiState.update { it.copy(userName = name) }
+            }.onFailure {
+                // On failure, if we have cached name, keep using it
+                cachedUserName?.let { name -> _uiState.update { it.copy(userName = name) } }
             }
         }
     }

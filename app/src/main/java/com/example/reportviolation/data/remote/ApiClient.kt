@@ -6,6 +6,7 @@ import com.example.reportviolation.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.Cache
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -87,7 +88,9 @@ object ApiClient {
         response
     }
 
-    private val baseClient = OkHttpClient.Builder()
+    internal val baseClient = OkHttpClient.Builder()
+        // Enable HTTP caching to reduce backend load (respects Cache-Control from server)
+        .cache(Cache(java.io.File("cache_http"), 10L * 1024L * 1024L))
         .addInterceptor(authInterceptor)
         .addInterceptor(debugPayloadInterceptor)
         .addInterceptor(logging)
@@ -95,7 +98,7 @@ object ApiClient {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val retrofitBuilder: Retrofit.Builder by lazy {
+    internal val retrofitBuilder: Retrofit.Builder by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
