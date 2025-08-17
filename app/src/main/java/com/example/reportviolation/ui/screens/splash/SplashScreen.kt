@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,11 @@ import androidx.navigation.NavController
 import com.example.reportviolation.R
 import com.example.reportviolation.ui.navigation.Screen
 import kotlinx.coroutines.delay
+import com.example.reportviolation.data.remote.auth.TokenPrefs
+import com.example.reportviolation.data.remote.auth.TokenStore
+import com.example.reportviolation.data.remote.auth.SessionPrefs
+import com.example.reportviolation.data.remote.ApiClient
+import com.example.reportviolation.data.remote.AuthApi
 
 @Composable
 fun SplashScreen(navController: NavController) {
@@ -27,16 +33,45 @@ fun SplashScreen(navController: NavController) {
         targetValue = if (startAnimation) 1f else 0f,
         animationSpec = tween(durationMillis = 2000)
     )
-    
+
+    val context = LocalContext.current
+
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(2500L)
-        // TODO: Check if user is logged in
-        navController.navigate(Screen.Login.route) {
-            popUpTo(Screen.Splash.route) { inclusive = true }
+        // Initialize token prefs and check session age
+        runCatching { TokenPrefs.init(context) }
+        val access = TokenStore.accessToken
+        val loginAt = SessionPrefs.getLoginAt(context)
+        val now = System.currentTimeMillis()
+        val within24h = loginAt > 0L && (now - loginAt) <= 24 * 60 * 60 * 1000
+        if (!access.isNullOrBlank() && within24h) {
+            // Fetch profile to ensure registration completed
+            val base = ApiClient.retrofit(okhttp3.OkHttpClient.Builder().build())
+            val authClient = ApiClient.buildClientWithAuthenticator(base.create(AuthApi::class.java))
+            val authApi = ApiClient.retrofit(authClient).create(AuthApi::class.java)
+            val destination = try {
+                val res = authApi.getCitizenProfile()
+                val p = res.data
+                val incomplete = (p == null) || (p.name.isNullOrBlank()) || (p.emailEncrypted.isNullOrBlank())
+                // Persist a sticky flag so that closing/reopening app still forces complete_profile until done
+                SessionPrefs.setProfileComplete(context, !incomplete)
+                if (incomplete) "complete_profile" else Screen.Dashboard.route
+            } catch (_: Throwable) {
+                // On error, use the persisted profile flag to decide; fallback to Login if uncertain
+                if (SessionPrefs.isProfileComplete(context)) Screen.Dashboard.route else Screen.Login.route
+            }
+            navController.navigate(destination) {
+                popUpTo(Screen.Splash.route) { inclusive = true }
+            }
+        } else {
+            // If token expired but we know profile is incomplete, still go to login (flow will end in complete_profile after OTP)
+            navController.navigate(Screen.Login.route) {
+                popUpTo(Screen.Splash.route) { inclusive = true }
+            }
         }
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -54,9 +89,9 @@ fun SplashScreen(navController: NavController) {
                     .size(120.dp)
                     .alpha(alphaAnim.value)
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(
                 text = "Traffic Violation Reporter",
                 color = MaterialTheme.colorScheme.onPrimary,
@@ -64,9 +99,9 @@ fun SplashScreen(navController: NavController) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.alpha(alphaAnim.value)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "Making roads safer together",
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),

@@ -293,16 +293,22 @@ fun IncidentDetailsSection(report: CitizenReportDetail) {
             DetailRow(
                 icon = Icons.Default.Warning,
                 label = stringResource(R.string.violation_types),
-                value = buildString {
+                value = run {
+                    val ctx = LocalContext.current
                     val typesFromMedia = runCatching {
                         val json = report.mediaMetadata
                         if (!json.isNullOrBlank()) {
                             val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
                             val arr = obj.getAsJsonArray("violationTypes")
-                            arr?.mapNotNull { it.asString }?.joinToString(", ")
+                            arr?.mapNotNull { it.asString }
                         } else null
                     }.getOrNull()
-                    append(typesFromMedia ?: report.violationType ?: "OTHERS")
+                    val primary = (typesFromMedia?.firstOrNull() ?: report.violationType ?: "OTHERS")
+                    if (typesFromMedia != null && typesFromMedia.isNotEmpty()) {
+                        typesFromMedia.joinToString(", ") { getLocalizedViolationTypeName(com.example.reportviolation.data.model.ViolationType.valueOf(it), ctx) }
+                    } else {
+                        getLocalizedViolationTypeName(com.example.reportviolation.data.model.ViolationType.valueOf(primary), ctx)
+                    }
                 }
             )
         }

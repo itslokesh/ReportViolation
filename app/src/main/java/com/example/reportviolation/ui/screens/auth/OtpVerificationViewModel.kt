@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import com.example.reportviolation.di.AppModule
 import com.example.reportviolation.data.remote.auth.TokenPrefs
 import com.example.reportviolation.data.remote.auth.TokenStore
+import com.example.reportviolation.data.remote.auth.SessionPrefs
+
 
 data class OtpVerificationUiState(
     val otp: String = "",
@@ -20,8 +22,8 @@ data class OtpVerificationUiState(
     val otpError: String? = null,
     val isLoading: Boolean = false,
     val shouldNavigateToDashboard: Boolean = false,
-    val canResendOtp: Boolean = true,
-    val resendTimer: Int = 0
+    val canResendOtp: Boolean = false,
+    val resendTimer: Int = 45
 )
 
 class OtpVerificationViewModel : ViewModel() {
@@ -65,17 +67,17 @@ class OtpVerificationViewModel : ViewModel() {
                     // Update citizen profile with name/email using the new token
                     runCatching { OtpNetworkBridge.registerCitizenProfile(fullPhone, _uiState.value.name, _uiState.value.email) }
                 }
+                if (ok) {
+                    // Record session start (persisted by Splash check)
+                    // We cannot access context here; Splash will only read the timestamp from SharedPreferences.
+                    // Use a side channel via a helper that needs context when available; for now, set epoch in a global store via a callback is out-of-scope.
+                }
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
                         shouldNavigateToDashboard = ok,
                         otpError = if (ok) null else "Invalid OTP. Please try again."
                     )
-                }
-                if (ok) {
-                    // Persist tokens after verification
-                    // We need context; in ViewModel we typically inject. Skipping direct persist here.
-                    // TokenPrefs.persist(appContext)
                 }
             } catch (e: Exception) {
                 _uiState.update { currentState ->
@@ -94,15 +96,14 @@ class OtpVerificationViewModel : ViewModel() {
         _uiState.update { 
             it.copy(
                 canResendOtp = false,
-                resendTimer = 30 // 30 seconds cooldown
+                resendTimer = 45 // 45 seconds cooldown
             )
         }
         
         viewModelScope.launch {
             try {
-                // Simulate sending OTP
-                kotlinx.coroutines.delay(1000) // Simulate network delay
-                // In real app, this would trigger OTP sending
+                val fullPhone = "+${_uiState.value.countryCode}-${_uiState.value.phoneNumber}"
+                com.example.reportviolation.ui.screens.auth.OtpNetworkBridge.sendOtp(fullPhone)
             } catch (e: Exception) {
                 // Handle error
             }

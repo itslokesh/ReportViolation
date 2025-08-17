@@ -9,6 +9,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import java.nio.charset.StandardCharsets
+import okhttp3.MultipartBody
+import okio.Buffer
 
 object ApiClient {
     // Reads from BuildConfig set by productFlavors (lan/emulator)
@@ -28,11 +31,65 @@ object ApiClient {
     }
 
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.HEADERS
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    private val debugPayloadInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        val startNs = System.nanoTime()
+        if (BuildConfig.DEBUG) {
+            try {
+                val method = request.method
+                val path = request.url.encodedPath
+                val body = request.body
+                var bodyLog = ""
+                if (body != null) {
+                    bodyLog = when (body) {
+                        is MultipartBody -> {
+                            val names = body.parts.mapNotNull { part ->
+                                part.headers?.get("Content-Disposition")
+                            }
+                            "<multipart parts=" + names.size + "> " + names.joinToString(", ")
+                        }
+                        else -> {
+                            val buffer = Buffer()
+                            body.writeTo(buffer)
+                            val charset = body.contentType()?.charset(StandardCharsets.UTF_8) ?: StandardCharsets.UTF_8
+                            val raw = buffer.readString(charset)
+                            // Try to pretty print JSON
+                            try {
+                                val jsonElement = com.google.gson.JsonParser.parseString(raw)
+                                com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(jsonElement)
+                            } catch (_: Throwable) {
+                                raw
+                            }
+                        }
+                    }
+                }
+                println("API_REQ method=" + method + " path=" + path + if (bodyLog.isNotBlank()) "\npayload=" + bodyLog else "")
+            } catch (_: Throwable) { }
+        }
+        val response = chain.proceed(request)
+        if (BuildConfig.DEBUG) {
+            try {
+                val tookMs = (System.nanoTime() - startNs) / 1_000_000
+                val path = request.url.encodedPath
+                val code = response.code
+                val peek = response.peekBody(1024 * 1024L)
+                val raw = peek.string()
+                val pretty = try {
+                    val jsonElement = com.google.gson.JsonParser.parseString(raw)
+                    com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(jsonElement)
+                } catch (_: Throwable) { raw }
+                println("API_RES code=" + code + " path=" + path + " tookMs=" + tookMs + "\nbody=" + pretty)
+            } catch (_: Throwable) { }
+        }
+        response
     }
 
     private val baseClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        .addInterceptor(debugPayloadInterceptor)
         .addInterceptor(logging)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)

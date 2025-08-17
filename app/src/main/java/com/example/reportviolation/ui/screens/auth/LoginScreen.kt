@@ -2,6 +2,9 @@ package com.example.reportviolation.ui.screens.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,16 +16,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.reportviolation.ui.navigation.Screen
+import kotlinx.coroutines.launch
+import com.example.reportviolation.ui.screens.auth.OtpNetworkBridge
 import com.example.reportviolation.ui.theme.DarkBlue
 
 @Composable
 fun LoginScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
-    
-    // TODO: Phone number and OTP functionality commented out for testing phase
-    // var phoneNumber by remember { mutableStateOf("") }
-    // var otp by remember { mutableStateOf("") }
-    // var isOtpSent by remember { mutableStateOf(false) }
+    var phoneNumber by remember { mutableStateOf("") }
+    var countryCode by remember { mutableStateOf("91") }
+    var showCountryPicker by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     
     Column(
         modifier = Modifier
@@ -34,7 +38,7 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(60.dp))
         
         Text(
-            text = "Welcome Back",
+            text = "Sign in with phone",
             style = MaterialTheme.typography.headlineMedium,
             color = DarkBlue,
             textAlign = TextAlign.Center
@@ -43,7 +47,7 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Click Sign In to start testing the app",
+            text = "Enter your phone number to receive an OTP",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -51,19 +55,69 @@ fun LoginScreen(navController: NavController) {
         
         Spacer(modifier = Modifier.height(48.dp))
         
-        // Direct Sign In Button (Simplified for testing)
+        // Country code selector matching Create Account CX
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = "+$countryCode",
+                onValueChange = {},
+                modifier = Modifier
+                    .width(140.dp)
+                    .clickable { showCountryPicker = true },
+                label = { Text("Code") },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DarkBlue) },
+                singleLine = true,
+                readOnly = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedBorderColor = DarkBlue,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+            Spacer(Modifier.width(12.dp))
+            OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it.filter { ch -> ch.isDigit() }.take(15) },
+                label = { Text("Phone Number") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+        }
+        if (showCountryPicker) {
+            com.example.reportviolation.ui.components.CountryPickerDialog(
+                onDismiss = { showCountryPicker = false },
+                onCountrySelected = { country ->
+                    countryCode = country.dialCode
+                    showCountryPicker = false
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Button(
             onClick = {
+                if (phoneNumber.isBlank()) return@Button
                 isLoading = true
-                // TODO: Phone number and OTP verification commented out for testing
-                // For testing, directly navigate to dashboard
-                navController.navigate(Screen.Dashboard.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
+                val fullPhone = "+${countryCode}-${phoneNumber}"
+                scope.launch {
+                    val ok = runCatching { OtpNetworkBridge.sendOtp(fullPhone) }.getOrDefault(false)
+                    isLoading = false
+                    if (ok) {
+                        navController.navigate("${Screen.OtpVerification.route}?name=&email=&phone=${phoneNumber}&country=${countryCode}")
+                    }
                 }
-                isLoading = false
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading,
+            enabled = !isLoading && phoneNumber.isNotBlank(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = DarkBlue,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -75,7 +129,7 @@ fun LoginScreen(navController: NavController) {
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Sign In")
+                Text("Send OTP")
             }
         }
         
@@ -215,22 +269,6 @@ fun LoginScreen(navController: NavController) {
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Don't have an account? ",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            TextButton(
-                onClick = { navController.navigate(Screen.Signup.route) }
-            ) {
-                Text(
-                    "Sign Up",
-                    color = DarkBlue
-                )
-            }
-        }
+        // Sign up button removed; registration happens after OTP verify if profile is incomplete
     }
 } 

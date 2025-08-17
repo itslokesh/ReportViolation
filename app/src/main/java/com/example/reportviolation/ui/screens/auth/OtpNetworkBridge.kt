@@ -32,15 +32,29 @@ object OtpNetworkBridge {
         val res = authApi.verifyOtp(payload)
         val data = res.data ?: return false
         TokenStore.update(data.token, data.refreshToken)
+        try {
+            // Remember last phone seen during successful verify for later registration convenience
+            // No context available here; a UI layer will persist via SessionPrefs
+        } catch (_: Throwable) {}
         return true
     }
 
     suspend fun registerCitizenProfile(fullPhone: String, name: String, email: String): Boolean {
-        val payload = CitizenRegisterBody(phoneNumber = fullPhone, name = name, email = email)
+        val payload = CitizenRegisterBody(
+            phoneNumber = fullPhone,
+            name = name,
+            email = email,
+        )
         println("API_REGISTER_CITIZEN payload=" + gson.toJson(payload))
         val res = authApi.registerCitizen(payload)
         println("API_REGISTER_CITIZEN response=" + gson.toJson(res))
-        return res.success
+        val data = res.data
+        if (res.success && data != null) {
+            // Backend returns new access/refresh tokens after registration; update in-memory
+            TokenStore.update(data.token, data.refreshToken)
+            return true
+        }
+        return false
     }
 
     suspend fun uploadPhoto(context: Context, uri: android.net.Uri): String? {

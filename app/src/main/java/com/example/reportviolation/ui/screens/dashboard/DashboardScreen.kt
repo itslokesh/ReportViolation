@@ -409,6 +409,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
     // Filter and sort state
     var selectedFilter by remember { mutableStateOf("All") }
     var selectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
+    var selectedViolationTypes by remember { mutableStateOf<Set<ViolationType>>(emptySet()) }
     var sortOrder by remember { mutableStateOf("Newest First") }
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -489,7 +490,9 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -497,7 +500,9 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
             }
             uiState.error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -523,7 +528,9 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
             }
             uiState.reports.isEmpty() -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -563,9 +570,12 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                             "Resolved" -> statusEnum == ReportStatus.APPROVED
                             else -> true
                         }
-                        val typeMatch = selectedViolationType?.let { sel ->
-                            report.violationTypes?.any { it == sel.name } ?: false
-                        } ?: true
+                        val typeMatch = if (selectedViolationTypes.isEmpty()) {
+                            true
+                        } else {
+                            val names = report.violationTypes ?: emptyList()
+                            selectedViolationTypes.any { sel -> names.any { it == sel.name } }
+                        }
                         statusMatch && typeMatch
                     }
                     .let { reports ->
@@ -580,7 +590,9 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
                 if (filteredReports.isEmpty()) {
                     // Show "No reports found" when filters return no results
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -709,12 +721,15 @@ fun ReportsTab(padding: PaddingValues, navController: NavController) {
         FilterDialog(
             selectedViolationType = tempSelectedViolationType,
             onViolationTypeSelected = { tempSelectedViolationType = it },
-            onDismiss = { 
+            selectedTypes = selectedViolationTypes,
+            onSelectedTypesChange = { selectedViolationTypes = it },
+            onDismiss = {
                 showFilterDialog = false
                 tempSelectedViolationType = selectedViolationType // Reset to current value
             },
-            onClearFilters = { 
+            onClearFilters = {
                 tempSelectedViolationType = null
+                selectedViolationTypes = emptySet()
             },
             onApply = {
                 selectedViolationType = tempSelectedViolationType
@@ -1324,6 +1339,8 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
 fun FilterDialog(
     selectedViolationType: ViolationType?,
     onViolationTypeSelected: (ViolationType?) -> Unit,
+    selectedTypes: Set<ViolationType> = emptySet(),
+    onSelectedTypesChange: (Set<ViolationType>) -> Unit = {},
     onDismiss: () -> Unit,
     onClearFilters: () -> Unit,
     onApply: () -> Unit
@@ -1342,16 +1359,23 @@ fun FilterDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 ViolationType.values().forEach { violationType ->
+                    val isSelected = selectedTypes.contains(violationType)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onViolationTypeSelected(violationType) }
+                            .clickable {
+                                val next = if (isSelected) selectedTypes - violationType else selectedTypes + violationType
+                                onSelectedTypesChange(next)
+                            }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(
-                            selected = selectedViolationType == violationType,
-                            onClick = { onViolationTypeSelected(violationType) }
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { checked ->
+                                val next = if (checked) selectedTypes + violationType else selectedTypes - violationType
+                                onSelectedTypesChange(next)
+                            }
                         )
                         
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1377,13 +1401,13 @@ fun FilterDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onViolationTypeSelected(null) }
+                        .clickable { onSelectedTypesChange(emptySet()) }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = selectedViolationType == null,
-                        onClick = { onViolationTypeSelected(null) }
+                    Checkbox(
+                        checked = selectedTypes.isEmpty(),
+                        onCheckedChange = { onSelectedTypesChange(emptySet()) }
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))

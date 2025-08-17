@@ -20,7 +20,11 @@ interface AuthApi {
 
     // Citizen profile registration/update
     @POST("/api/auth/citizen/register")
-    suspend fun registerCitizen(@Body body: CitizenRegisterBody): ApiResponse<Any>
+    suspend fun registerCitizen(@Body body: CitizenRegisterBody): ApiResponse<CitizenAuthData>
+
+    // Profile endpoints
+    @GET("/api/citizen/profile")
+    suspend fun getCitizenProfile(): ApiResponse<CitizenProfile>
 }
 
 interface UploadApi {

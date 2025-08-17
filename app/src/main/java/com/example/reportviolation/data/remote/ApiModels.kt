@@ -28,12 +28,24 @@ data class CitizenAuthData(
     val user: Any?,
 )
 
+data class CitizenProfile(
+    val id: String?,
+    val phoneNumberEncrypted: String?,
+    val name: String?,
+    val emailEncrypted: String?,
+)
+
 data class RefreshBody(val refreshToken: String)
 
 data class CitizenRegisterBody(
     val phoneNumber: String,
     val name: String,
     val email: String,
+    // Optional registration fields (documented for backend, can extend later)
+    val registeredCity: String? = null,
+    val registeredPincode: String? = null,
+    val registeredDistrict: String? = null,
+    val registeredState: String? = null,
 )
 
 data class ReportCreateBody(

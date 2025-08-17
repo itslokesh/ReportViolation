@@ -14,6 +14,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.reportviolation.data.remote.auth.TokenPrefs
 import com.example.reportviolation.ui.theme.DarkBlue
 import com.example.reportviolation.ui.navigation.Screen
+import com.example.reportviolation.data.remote.auth.SessionPrefs
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun OtpVerificationScreen(
@@ -26,10 +30,12 @@ fun OtpVerificationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     
     // Initialize signup data when the screen is first displayed
     LaunchedEffect(name, email, phone, country) {
-        if (name.isNotBlank() && email.isNotBlank() && phone.isNotBlank()) {
+        // Always capture phone and country if provided
+        if (phone.isNotBlank()) {
             viewModel.initializeSignupData(name, email, phone, country)
         }
     }
@@ -124,14 +130,16 @@ fun OtpVerificationScreen(
                 text = "Didn't receive OTP? ",
                 style = MaterialTheme.typography.bodyMedium
             )
+            val resendEnabled = !uiState.isLoading && uiState.canResendOtp
             TextButton(
                 onClick = { viewModel.resendOtp() },
-                enabled = !uiState.isLoading && uiState.canResendOtp
-            ) {
-                Text(
-                    "Resend",
-                    color = DarkBlue
+                enabled = resendEnabled,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = DarkBlue,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+            ) {
+                Text("Resend")
             }
         }
         
@@ -147,7 +155,7 @@ fun OtpVerificationScreen(
         
         // Change Details Button
         OutlinedButton(
-            onClick = { navController.navigate(Screen.Signup.route) },
+            onClick = { navController.navigate(Screen.Login.route) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !uiState.isLoading,
             colors = ButtonDefaults.outlinedButtonColors(
@@ -173,10 +181,44 @@ fun OtpVerificationScreen(
     // Handle navigation to dashboard on successful verification
     LaunchedEffect(uiState.shouldNavigateToDashboard) {
         if (uiState.shouldNavigateToDashboard) {
-            // Persist tokens now that verification succeeded
-            try { TokenPrefs.persist(context) } catch (_: Throwable) {}
-            navController.navigate(Screen.Dashboard.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+            // Persist tokens now that verification succeeded and mark session start
+            try { 
+                TokenPrefs.persist(context)
+                SessionPrefs.setLoginAt(context, System.currentTimeMillis())
+                // Persist last phone and country for use on registration screen
+                if (phone.isNotBlank()) {
+                    SessionPrefs.setLastPhone(context, phone)
+                    SessionPrefs.setLastCountry(context, country)
+                }
+            } catch (_: Throwable) {}
+            // Check profile in IO, then navigate on Main
+            val base = com.example.reportviolation.data.remote.ApiClient.retrofit(okhttp3.OkHttpClient.Builder().build())
+            val authClient = com.example.reportviolation.data.remote.ApiClient.buildClientWithAuthenticator(base.create(com.example.reportviolation.data.remote.AuthApi::class.java))
+            val authApi = com.example.reportviolation.data.remote.ApiClient.retrofit(authClient).create(com.example.reportviolation.data.remote.AuthApi::class.java)
+            scope.launch(Dispatchers.IO) {
+                val needsRegistration = try {
+                    val res = authApi.getCitizenProfile()
+                    val profile = res.data
+                    val incomplete = profile == null || profile.name.isNullOrBlank() || profile.emailEncrypted.isNullOrBlank()
+                    // Persist sticky profile completion flag for Splash to enforce on app relaunch
+                    SessionPrefs.setProfileComplete(context, !incomplete)
+                    incomplete
+                } catch (_: Throwable) {
+                    // On error, do not mark complete; force CompleteProfile path as conservative default
+                    SessionPrefs.setProfileComplete(context, false)
+                    true
+                }
+                withContext(Dispatchers.Main) {
+                    if (needsRegistration) {
+                        navController.navigate("complete_profile") {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
+                }
             }
         }
     }

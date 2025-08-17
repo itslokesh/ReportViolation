@@ -8,8 +8,8 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.reportviolation.ui.screens.auth.LoginScreen
 import com.example.reportviolation.ui.screens.auth.RegistrationScreen
-import com.example.reportviolation.ui.screens.auth.SignupScreen
 import com.example.reportviolation.ui.screens.auth.OtpVerificationScreen
+import com.example.reportviolation.ui.screens.auth.CompleteProfileScreen
 import com.example.reportviolation.ui.screens.camera.CameraScreen
 import com.example.reportviolation.ui.screens.dashboard.DashboardScreen
 import com.example.reportviolation.ui.screens.map.MapScreen
@@ -35,10 +35,6 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
         
         composable(Screen.Registration.route) {
             RegistrationScreen(navController)
-        }
-        
-        composable(Screen.Signup.route) {
-            SignupScreen(navController)
         }
         
         composable(
@@ -106,6 +102,9 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
         composable(Screen.ReportsHistory.route) {
             ReportsHistoryScreen(navController)
         }
+        composable("complete_profile") {
+            CompleteProfileScreen(navController)
+        }
         
         composable(
             route = "${Screen.ReportDetails.route}/{reportId}?sourceTab={sourceTab}",
@@ -134,7 +133,7 @@ sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Login : Screen("login")
     object Registration : Screen("registration")
-    object Signup : Screen("signup")
+    // Signup route removed; sign-in flow handles registration completion
     object OtpVerification : Screen("otp_verification")
     object Dashboard : Screen("dashboard")
     object ReportViolation : Screen("report_violation")

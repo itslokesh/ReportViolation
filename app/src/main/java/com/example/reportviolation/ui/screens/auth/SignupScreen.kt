@@ -113,40 +113,24 @@ fun SignupScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Country Code Input (styled like OutlinedTextField)
-            Surface(
+            // Country Code Input styled identically to phone number
+            OutlinedTextField(
+                value = "+${uiState.selectedCountry.dialCode}",
+                onValueChange = {},
+                label = { Text("Code") },
                 modifier = Modifier
-                    .width(120.dp)
+                    .width(140.dp)
                     .clickable { showCountryPicker = true },
-                shape = MaterialTheme.shapes.small,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Code",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            text = "+${uiState.selectedCountry.dialCode}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+                singleLine = true,
+                readOnly = true,
+                trailingIcon = {
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = "Select Country",
                         tint = DarkBlue
                     )
                 }
-            }
+            )
             
             // Phone Number Input
             OutlinedTextField(
@@ -224,18 +208,20 @@ fun SignupScreen(
         if (uiState.shouldNavigateToOtp) {
             val route = "${Screen.OtpVerification.route}?name=${uiState.name}&email=${uiState.email}&phone=${uiState.phoneNumber}&country=${uiState.selectedCountry.dialCode}"
             navController.navigate(route) {
-                popUpTo(Screen.Signup.route) { inclusive = true }
+                popUpTo(Screen.Login.route) { inclusive = false }
             }
         }
     }
     
-    // Country Picker Dialog
+    // Country Picker Info Dialog for signup flow
     if (showCountryPicker) {
-        CountryPickerDialog(
-            onDismiss = { showCountryPicker = false },
-            onCountrySelected = { country ->
-                viewModel.updateSelectedCountry(country)
-            }
+        AlertDialog(
+            onDismissRequest = { showCountryPicker = false },
+            confirmButton = {
+                TextButton(onClick = { showCountryPicker = false }) { Text("OK") }
+            },
+            title = { Text("Country code") },
+            text = { Text("Defaulting to +91. Country picker integration can be extended.") }
         )
     }
 }
