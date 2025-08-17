@@ -153,7 +153,7 @@ fun OtpVerificationScreen(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Change Details Button
+        // Change Details Button (kept)
         OutlinedButton(
             onClick = { navController.navigate(Screen.Login.route) },
             modifier = Modifier.fillMaxWidth(),
@@ -163,18 +163,6 @@ fun OtpVerificationScreen(
             )
         ) {
             Text("Change Details")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Back to Login
-        TextButton(
-            onClick = { navController.navigate(Screen.Login.route) }
-        ) {
-            Text(
-                "Back to Login",
-                color = DarkBlue
-            )
         }
     }
     

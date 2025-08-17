@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,28 +58,38 @@ fun LoginScreen(navController: NavController) {
         
         // Country code selector matching Create Account CX
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = "+$countryCode",
-                onValueChange = {},
-                modifier = Modifier
-                    .width(140.dp)
-                    .clickable { showCountryPicker = true },
-                label = { Text("Code") },
-                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DarkBlue) },
-                singleLine = true,
-                readOnly = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedBorderColor = DarkBlue,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = MaterialTheme.colorScheme.onSurface,
-                    focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                    disabledLabelColor = MaterialTheme.colorScheme.onSurface
+            Box(modifier = Modifier.width(140.dp)) {
+                OutlinedTextField(
+                    value = "+$countryCode",
+                    onValueChange = {},
+                    modifier = Modifier.matchParentSize(),
+                    label = { Text("Code", color = Color.Black) },
+                    trailingIcon = {
+                        IconButton(onClick = { showCountryPicker = true }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DarkBlue)
+                        }
+                    },
+                    singleLine = true,
+                    readOnly = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        disabledTextColor = Color.Black,
+                        focusedBorderColor = DarkBlue,
+                        unfocusedBorderColor = Color.Black,
+                        disabledBorderColor = Color.Black,
+                        focusedLabelColor = Color.Black,
+                        unfocusedLabelColor = Color.Black,
+                        disabledLabelColor = Color.Black
+                    )
                 )
-            )
+                // Ensure the entire field opens the picker on tap
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showCountryPicker = true }
+                )
+            }
             Spacer(Modifier.width(12.dp))
             OutlinedTextField(
                 value = phoneNumber,

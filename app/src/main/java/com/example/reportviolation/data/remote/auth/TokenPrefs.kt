@@ -38,10 +38,15 @@ object TokenPrefs {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-        prefs.edit()
-            .putString(KEY_ACCESS, TokenStore.accessToken)
-            .putString(KEY_REFRESH, TokenStore.refreshToken)
-            .apply()
+        val editor = prefs.edit()
+        if (TokenStore.accessToken.isNullOrBlank() && TokenStore.refreshToken.isNullOrBlank()) {
+            editor.remove(KEY_ACCESS)
+            editor.remove(KEY_REFRESH)
+        } else {
+            editor.putString(KEY_ACCESS, TokenStore.accessToken)
+            editor.putString(KEY_REFRESH, TokenStore.refreshToken)
+        }
+        editor.apply()
     }
 }
 

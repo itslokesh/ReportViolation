@@ -112,15 +112,11 @@ class OtpVerificationViewModel : ViewModel() {
     
     fun decrementResendTimer() {
         _uiState.update { currentState ->
-            if (currentState.resendTimer > 0) {
-                currentState.copy(
-                    resendTimer = currentState.resendTimer - 1
-                )
+            val next = currentState.resendTimer - 1
+            if (next > 0) {
+                currentState.copy(resendTimer = next)
             } else {
-                currentState.copy(
-                    canResendOtp = true,
-                    resendTimer = 0
-                )
+                currentState.copy(canResendOtp = true, resendTimer = 0)
             }
         }
     }

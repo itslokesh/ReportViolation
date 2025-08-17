@@ -30,9 +30,12 @@ class SettingsViewModel : ViewModel() {
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
     
     private var languageManager: LanguageManager? = null
+    private var appContext: Context? = null
     
                fun initialize(context: Context) {
-               languageManager = LanguageManager(context)
+               val applicationContext = context.applicationContext
+               appContext = applicationContext
+               languageManager = LanguageManager(applicationContext)
                val currentLanguage = languageManager?.getCurrentLanguage() ?: LanguageManager.LANGUAGE_ENGLISH
                _uiState.update { it.copy(selectedLanguage = currentLanguage) }
            }
@@ -98,11 +101,18 @@ class SettingsViewModel : ViewModel() {
     }
     
     fun logout() {
-        // TODO: Clear user session, preferences, and navigate to login
-        // This would typically involve:
-        // 1. Clearing SharedPreferences
-        // 2. Clearing database user session
-        // 3. Signing out from any authentication service
+        viewModelScope.launch {
+            // Clear in-memory tokens
+            com.example.reportviolation.data.remote.auth.TokenStore.update(null, null)
+            // Clear persisted tokens and session flags
+            appContext?.let { ctx ->
+                runCatching { com.example.reportviolation.data.remote.auth.TokenPrefs.persist(ctx) }
+                runCatching { com.example.reportviolation.data.remote.auth.SessionPrefs.setLoginAt(ctx, 0L) }
+                runCatching { com.example.reportviolation.data.remote.auth.SessionPrefs.setProfileComplete(ctx, false) }
+                runCatching { com.example.reportviolation.data.remote.auth.SessionPrefs.setLastPhone(ctx, "") }
+                runCatching { com.example.reportviolation.data.remote.auth.SessionPrefs.setLastCountry(ctx, "") }
+            }
+        }
     }
     
     fun loadUserSettings() {
