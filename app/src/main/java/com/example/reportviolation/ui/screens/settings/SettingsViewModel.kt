@@ -24,7 +24,8 @@ data class SettingsUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showLanguageConfirmationDialog: Boolean = false,
-    val pendingLanguageChange: String? = null
+    val pendingLanguageChange: String? = null,
+    val shouldRecreate: Boolean = false
 )
 
 class SettingsViewModel : ViewModel() {
@@ -87,11 +88,16 @@ class SettingsViewModel : ViewModel() {
                     it.copy(
                         selectedLanguage = pendingLanguage,
                         showLanguageConfirmationDialog = false,
-                        pendingLanguageChange = null
+                        pendingLanguageChange = null,
+                        shouldRecreate = true
                     )
                 }
             }
         }
+    }
+
+    fun markRecreateHandled() {
+        _uiState.update { it.copy(shouldRecreate = false) }
     }
     
     fun dismissLanguageConfirmationDialog() {

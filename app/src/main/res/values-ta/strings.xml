@@ -18,6 +18,23 @@
     <string name="settings_language_english">ஆங்கிலம்</string>
     <string name="settings_language_tamil">தமிழ்</string>
     
+    <!-- Feedbacks Section -->
+    <string name="feedbacks_title">பின்னூட்டங்கள்</string>
+    <string name="submit_feedback">பின்னூட்டத்தை சமர்ப்பிக்கவும்</string>
+    <string name="show_feedbacks">பின்னூட்டங்களைக் காண்க</string>
+    <string name="your_feedbacks_title">உங்கள் பின்னூட்டங்கள்</string>
+    <string name="no_feedbacks_yet">இன்னும் பின்னூட்டங்கள் இல்லை</string>
+    <string name="failed_to_load_feedbacks">பின்னூட்டங்களை ஏற்ற முடியவில்லை</string>
+    <string name="feedback_type_label">வகை</string>
+    <string name="your_feedback_label">உங்கள் பின்னூட்டம்</string>
+    <string name="describe_feedback_placeholder">உங்கள் பின்னூட்டத்தை விவரிக்கவும்</string>
+    <string name="error_enter_feedback">தயவுசெய்து உங்கள் பின்னூட்டத்தை உள்ளிடவும்</string>
+    <string name="snackbar_feedback_submitted">பின்னூட்டம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது</string>
+    <string name="app_feedback_label">அப் பின்னூட்டம்</string>
+    <string name="report_feedback_label">அறிக்கை பின்னூட்டம்</string>
+    <string name="service_feedback_label">சேவை பின்னூட்டம்</string>
+    <string name="feature_request_label">அம்ச கோரிக்கை</string>
+    
     <!-- Common -->
     <string name="home">முகப்பு</string>
     <string name="reports">அறிக்கைகள்</string>
@@ -141,6 +158,7 @@
     <string name="no_reports_found">அறிக்கைகள் எதுவும் கிடைக்கவில்லை</string>
     <string name="no_notifications">அறிவிப்புகள் எதுவும் இல்லை</string>
     <string name="pull_to_refresh">புதுப்பிக்க இழுக்கவும்</string>
+    <string name="hello_name">வணக்கம், %1$s</string>
     
     <!-- Report Details -->
     <string name="report_details">அறிக்கை விவரங்கள்</string>
@@ -185,6 +203,12 @@
     <string name="clear_all">அனைத்தையும் அழி</string>
     <string name="all_violation_types">அனைத்து மீறல் வகைகளும்</string>
     <string name="retry">மீண்டும் முயற்சிக்கவும்</string>
+    
+    <!-- Relative time strings -->
+    <string name="time_just_now">இப்பொழுது</string>
+    <string name="time_minutes_ago">%1$d நிமிடங்களுக்கு முன்</string>
+    <string name="time_today_at">இன்று, %1$s</string>
+    <string name="time_yesterday_at">நேற்று, %1$s</string>
     
     <!-- Language Names -->
     <string name="language_english">ஆங்கிலம்</string>

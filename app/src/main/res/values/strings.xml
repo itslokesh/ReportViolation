@@ -17,6 +17,18 @@
     <string name="feedbacks_title">Feedbacks</string>
     <string name="submit_feedback">Submit Feedback</string>
     <string name="show_feedbacks">Show Feedbacks</string>
+    <string name="your_feedbacks_title">Your Feedbacks</string>
+    <string name="no_feedbacks_yet">No feedbacks yet</string>
+    <string name="failed_to_load_feedbacks">Failed to load feedbacks</string>
+    <string name="feedback_type_label">Type</string>
+    <string name="your_feedback_label">Your feedback</string>
+    <string name="describe_feedback_placeholder">Describe your feedback</string>
+    <string name="error_enter_feedback">Please enter your feedback</string>
+    <string name="snackbar_feedback_submitted">Feedback submitted successfully</string>
+    <string name="app_feedback_label">App feedback</string>
+    <string name="report_feedback_label">Report feedback</string>
+    <string name="service_feedback_label">Service feedback</string>
+    <string name="feature_request_label">Feature request</string>
     <string name="settings_screen_reader">Screen reader</string>
     <string name="settings_language_english">English</string>
     <string name="settings_language_tamil">Tamil</string>
@@ -188,6 +200,13 @@
     <string name="clear_all">Clear All</string>
     <string name="all_violation_types">All Violation Types</string>
     <string name="retry">Retry</string>
+    <string name="hello_name">Hello, %1$s</string>
+    
+    <!-- Relative time strings -->
+    <string name="time_just_now">Just now</string>
+    <string name="time_minutes_ago">%1$d mins ago</string>
+    <string name="time_today_at">Today, %1$s</string>
+    <string name="time_yesterday_at">Yesterday, %1$s</string>
     
     <!-- Language Names -->
     <string name="language_english">English</string>

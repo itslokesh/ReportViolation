@@ -42,6 +42,7 @@ import com.example.reportviolation.data.model.ViolationReport
 import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.data.model.ViolationType
 import com.example.reportviolation.utils.DateTimeUtils
+import androidx.compose.ui.res.stringResource
 import com.example.reportviolation.data.remote.CitizenReportItem
 import com.example.reportviolation.domain.service.LanguageManager
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryViewModel
@@ -191,7 +192,7 @@ fun HomeTab(
                 val settings by settingsVm.uiState.collectAsState()
                 LaunchedEffect(Unit) { settingsVm.loadUserSettings() }
                 Text(
-                    text = "Hello, ${settings.userName}",
+                    text = stringResource(R.string.hello_name, settings.userName),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -845,6 +846,15 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
             onDismiss = { viewModel.dismissLanguageConfirmationDialog() }
         )
     }
+
+    // Trigger activity recreation when language changes to refresh all Composables with new resources
+    if (uiState.shouldRecreate) {
+        val activity = (context as? android.app.Activity)
+        LaunchedEffect(uiState.shouldRecreate) {
+            viewModel.markRecreateHandled()
+            activity?.recreate()
+        }
+    }
     
     LazyColumn(
         modifier = Modifier
@@ -1004,7 +1014,7 @@ fun LanguageSection(
                     Icon(
                         imageVector = if (showLanguageDropdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = "Toggle dropdown",
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
@@ -1596,33 +1606,32 @@ private fun getStatusIcon(status: ReportStatus): androidx.compose.ui.graphics.ve
     }
 }
 
+@Composable
 private fun formatReportRelativeIst(timestamp: String?): String {
     if (timestamp.isNullOrBlank()) return ""
-    return try {
-        val instant = try { java.time.Instant.parse(timestamp) } catch (_: Exception) {
-            try { java.time.OffsetDateTime.parse(timestamp).toInstant() } catch (_: Exception) {
-                java.time.ZonedDateTime.parse(timestamp).toInstant()
-            }
-        }
-        val nowIst = DateTimeUtils.nowZonedIst()
-        val timeIst = instant.atZone(DateTimeUtils.IST)
-        val duration = java.time.Duration.between(timeIst, nowIst)
-        val seconds = duration.seconds
-        val minutes = duration.toMinutes()
-        when {
-            seconds < 60 && seconds >= 0 -> "Just now"
-            minutes in 1..59 -> "$minutes mins ago"
-            timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
-                "Today, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
-            timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
-                "Yesterday, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
-            timeIst.year == nowIst.year ->
-                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
-            else ->
-                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
-        }
-    } catch (_: Exception) {
-        timestamp
+    val instant = runCatching { java.time.Instant.parse(timestamp) }
+        .getOrElse {
+            runCatching { java.time.OffsetDateTime.parse(timestamp).toInstant() }
+                .getOrElse { runCatching { java.time.ZonedDateTime.parse(timestamp).toInstant() }.getOrNull() }
+        } ?: return timestamp
+
+    val nowIst = DateTimeUtils.nowZonedIst()
+    val timeIst = instant.atZone(DateTimeUtils.IST)
+    val duration = java.time.Duration.between(timeIst, nowIst)
+    val seconds = duration.seconds
+    val minutes = duration.toMinutes()
+
+    return when {
+        seconds < 60 && seconds >= 0 -> stringResource(R.string.time_just_now)
+        minutes in 1..59 -> stringResource(R.string.time_minutes_ago, minutes.toInt())
+        timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_today_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_yesterday_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.year == nowIst.year ->
+            DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
+        else ->
+            DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
     }
 }
 

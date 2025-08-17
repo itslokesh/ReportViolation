@@ -17,6 +17,8 @@ import com.example.reportviolation.data.remote.FeedbackApi
 import com.example.reportviolation.data.remote.FeedbackItem
 import com.example.reportviolation.data.remote.FeedbackListPage
 import com.example.reportviolation.utils.DateTimeUtils
+import androidx.compose.ui.res.stringResource
+import com.example.reportviolation.R
 import okhttp3.OkHttpClient
 import java.time.Instant
 import com.example.reportviolation.ui.navigation.Screen
@@ -154,40 +156,33 @@ private fun friendlyType(type: String?): String {
     }
 }
 
+@Composable
 private fun formattedIstDate(createdAt: String?): String {
     if (createdAt.isNullOrBlank()) return ""
-    return try {
-        val instant = try {
-            Instant.parse(createdAt)
-        } catch (_: Exception) {
-            try {
-                java.time.OffsetDateTime.parse(createdAt).toInstant()
-            } catch (_: Exception) {
-                java.time.ZonedDateTime.parse(createdAt).toInstant()
-            }
-        }
+    val instant = runCatching { Instant.parse(createdAt) }
+        .getOrElse {
+            runCatching { java.time.OffsetDateTime.parse(createdAt).toInstant() }
+                .getOrElse { runCatching { java.time.ZonedDateTime.parse(createdAt).toInstant() }.getOrNull() }
+        } ?: return ""
 
-        val nowIst = DateTimeUtils.nowZonedIst()
-        val timeIst = instant.atZone(DateTimeUtils.IST)
-        val duration = java.time.Duration.between(timeIst, nowIst)
+    val nowIst = DateTimeUtils.nowZonedIst()
+    val timeIst = instant.atZone(DateTimeUtils.IST)
+    val duration = java.time.Duration.between(timeIst, nowIst)
 
-        val seconds = duration.seconds
-        val minutes = duration.toMinutes()
+    val seconds = duration.seconds
+    val minutes = duration.toMinutes()
 
-        when {
-            seconds < 60 && seconds >= 0 -> "Just now"
-            minutes in 1..59 -> "$minutes mins ago"
-            timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
-                "Today, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
-            timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
-                "Yesterday, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
-            timeIst.year == nowIst.year ->
-                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
-            else ->
-                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
-        }
-    } catch (_: Exception) {
-        ""
+    return when {
+        seconds < 60 && seconds >= 0 -> stringResource(R.string.time_just_now)
+        minutes in 1..59 -> stringResource(R.string.time_minutes_ago, minutes.toInt())
+        timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_today_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_yesterday_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.year == nowIst.year ->
+            DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
+        else ->
+            DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
     }
 }
 
