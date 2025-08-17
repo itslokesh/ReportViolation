@@ -68,9 +68,7 @@ fun DashboardScreen(
     
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White
-            ) {
+            NavigationBar {
                 NavigationBarItem(
                     icon = { 
                         Icon(
@@ -183,7 +181,7 @@ fun HomeTab(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightGray)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
                 .padding(16.dp)
         ) {
@@ -258,7 +256,7 @@ fun HomeTab(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
                     ) {
                         Column(
@@ -269,13 +267,13 @@ fun HomeTab(
                                 text = stringResource(R.string.no_reports_yet),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = stringResource(R.string.start_reporting),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -340,7 +338,8 @@ fun StatCard(
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
     ) {
         Column(
             modifier = Modifier
@@ -381,9 +380,10 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
                 navController.navigate("${Screen.ReportDetails.route}/${report.id}")
             },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -406,7 +406,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
                     text = getLocalizedViolationTypeName(report.violationType, context),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             
@@ -414,7 +414,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
             Text(
                 text = formatReportRelativeIst(report.date),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -459,7 +459,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightGray)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
         ) {
         // Header with title (matching Home tab style)
@@ -677,10 +677,10 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (sortOrder != "Newest First") DarkBlue else Color.White,
-                    contentColor = if (sortOrder != "Newest First") Color.White else DarkBlue
+                    containerColor = if (sortOrder != "Newest First") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (sortOrder != "Newest First") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 ),
-                border = if (sortOrder != "Newest First") null else BorderStroke(1.dp, DarkBlue)
+                border = if (sortOrder != "Newest First") null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -707,10 +707,10 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedViolationType != null) DarkBlue else Color.White,
-                    contentColor = if (selectedViolationType != null) Color.White else DarkBlue
+                    containerColor = if (selectedViolationType != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (selectedViolationType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 ),
-                border = if (selectedViolationType != null) null else BorderStroke(1.dp, DarkBlue)
+                border = if (selectedViolationType != null) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -784,7 +784,7 @@ fun NotificationsTab(padding: PaddingValues) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightGray)
+            .background(MaterialTheme.colorScheme.background)
             .padding(padding)
             .padding(16.dp)
     ) {
@@ -801,8 +801,9 @@ fun NotificationsTab(padding: PaddingValues) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                )
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -816,7 +817,7 @@ fun NotificationsTab(padding: PaddingValues) {
                     Text(
                         text = stringResource(R.string.no_reports_found),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -848,7 +849,7 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(padding)
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -877,8 +878,7 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
         // Accessibility Section (Text Size and Color Contrast only)
         item {
             AccessibilitySection(
-                onTextSizeClick = { /* Navigate to text size settings */ },
-                onColorContrastClick = { /* Navigate to color contrast settings */ }
+                onColorContrastClick = { com.example.reportviolation.ui.theme.ThemeController.toggle() }
             )
         }
 
@@ -953,7 +953,7 @@ fun ProfileHeader(
             text = userName,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -975,14 +975,14 @@ fun LanguageSection(
             text = stringResource(R.string.settings_language),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
         // Language Selector
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column {
@@ -998,7 +998,7 @@ fun LanguageSection(
                     Text(
                         text = languageManager.getLanguageDisplayName(selectedLanguage),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     Icon(
@@ -1025,7 +1025,7 @@ fun LanguageSection(
                             Text(
                                 text = languageManager.getLanguageDisplayName(language),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             
                             if (language == selectedLanguage) {
@@ -1047,7 +1047,6 @@ fun LanguageSection(
 
 @Composable
 fun AccessibilitySection(
-    onTextSizeClick: () -> Unit,
     onColorContrastClick: () -> Unit
 ) {
     Column {
@@ -1056,25 +1055,16 @@ fun AccessibilitySection(
             text = stringResource(R.string.settings_accessibility),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column {
-                // Text Size
-                AccessibilityItem(
-                    title = stringResource(R.string.settings_text_size),
-                    icon = Icons.Default.TextFields,
-                    onClick = onTextSizeClick
-                )
-                
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                
                 // Color Contrast
                 AccessibilityItem(
                     title = stringResource(R.string.settings_color_contrast),
@@ -1097,13 +1087,13 @@ fun FeedbacksSection(
             text = stringResource(com.example.reportviolation.R.string.feedbacks_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column {
@@ -1117,7 +1107,7 @@ fun FeedbacksSection(
                     Text(
                         text = stringResource(com.example.reportviolation.R.string.submit_feedback),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
@@ -1137,7 +1127,7 @@ fun FeedbacksSection(
                     Text(
                         text = stringResource(com.example.reportviolation.R.string.show_feedbacks),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
@@ -1176,7 +1166,7 @@ fun AccessibilityItem(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
         
         Spacer(modifier = Modifier.weight(1f))
@@ -1199,13 +1189,13 @@ fun RewardPointsSection(
             text = stringResource(R.string.settings_reward_points),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Row(
@@ -1312,7 +1302,7 @@ fun LanguageConfirmationDialog(
                 )
             }
         },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         titleContentColor = Color.Black,
         textContentColor = Color.Black
     )
@@ -1349,8 +1339,9 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
                 navController.navigate("${Screen.ReportDetails.route}/${report.id}?sourceTab=$sourceTab")
             },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -1368,7 +1359,7 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
                     text = report.violationTypes?.joinToString(", ") ?: "Report #${report.id}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -1377,7 +1368,7 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
                 Text(
                     text = displayTime,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             

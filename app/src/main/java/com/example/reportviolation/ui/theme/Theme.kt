@@ -8,7 +8,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -40,7 +40,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun ReportViolationTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = ThemeController.isDarkTheme.value ?: isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
@@ -60,4 +60,17 @@ fun ReportViolationTheme(
         typography = Typography,
         content = content
     )
+}
+
+object ThemeController {
+    // null means follow system; true/false force a mode
+    val isDarkTheme: MutableState<Boolean?> = mutableStateOf(null)
+    fun toggle() {
+        val current = isDarkTheme.value
+        isDarkTheme.value = when (current) {
+            null -> true
+            true -> false
+            false -> null
+        }
+    }
 }

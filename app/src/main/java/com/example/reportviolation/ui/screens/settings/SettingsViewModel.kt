@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
-    val userName: String = "Rajesh Kumar",
+    val userName: String = "User",
     val selectedLanguage: String = "English",
     val showLanguageDropdown: Boolean = false,
     val governmentNotifications: Boolean = true,
