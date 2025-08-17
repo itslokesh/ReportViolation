@@ -77,10 +77,7 @@ class DashboardViewModel : ViewModel() {
                     RecentReport(
                         id = item.id,
                         violationType = mapRemoteTypeToEnum(primaryTypeStr),
-                        date = runCatching {
-                            val ist = java.time.ZonedDateTime.ofInstant(java.time.Instant.parse(item.timestamp), java.time.ZoneId.of("Asia/Kolkata"))
-                            ist.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
-                        }.getOrDefault("")
+                        date = item.timestamp
                     )
                 }
 

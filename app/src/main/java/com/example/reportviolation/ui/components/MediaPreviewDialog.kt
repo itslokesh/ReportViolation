@@ -27,6 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.VideoView
+import android.widget.MediaController
+import android.media.MediaPlayer
 
 
 @Composable
@@ -50,112 +54,111 @@ fun MediaPreviewDialog(
             usePlatformDefaultWidth = false
         )
     ) {
-        Card(
+        // Dimmed background scrim
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Black
-            )
+                .background(Color.Black.copy(alpha = 0.75f))
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
             ) {
-                // Close button
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.5f),
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Close",
-                        tint = Color.White
-                    )
-                }
-                
-                // Media content
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 80.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
-                ) {
-                    when {
-                        isVideo -> {
-                            // Video preview with play button
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Gray.copy(alpha = 0.3f))
-                                    .clickable {
-                                        // Launch video player
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                setDataAndType(Uri.parse(mediaUri), "video/*")
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Close",
+                    tint = Color.White
+                )
+            }
+
+            // Media content container
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.Black.copy(alpha = if (isVideo) 0.3f else 0.1f))
+            ) {
+                // Loading indicator state for video
+                var isVideoLoading by remember { mutableStateOf(isVideo) }
+                var isBuffering by remember { mutableStateOf(false) }
+
+                when {
+                    isVideo -> {
+                        // Inline playback using VideoView so the URL is fetched directly
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { ctx ->
+                                VideoView(ctx).apply {
+                                    val controller = MediaController(ctx)
+                                    controller.setAnchorView(this)
+                                    setMediaController(controller)
+                                    setVideoURI(Uri.parse(mediaUri))
+                                    setOnPreparedListener { mp ->
+                                        isVideoLoading = false
+                                        mp.isLooping = false
+                                        // Listen for buffering events
+                                        mp.setOnInfoListener { _: MediaPlayer?, what: Int, _: Int ->
+                                            when (what) {
+                                                MediaPlayer.MEDIA_INFO_BUFFERING_START -> { isBuffering = true; true }
+                                                MediaPlayer.MEDIA_INFO_BUFFERING_END -> { isBuffering = false; true }
+                                                else -> false
                                             }
-                                            videoPlayerLauncher.launch(intent)
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("MediaPreview", "Error launching video: ${e.message}")
                                         }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Play video",
-                                        modifier = Modifier.size(80.dp),
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = "Tap to play video",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                        start()
+                                    }
+                                    setOnErrorListener { _: MediaPlayer?, _: Int, _: Int ->
+                                        isVideoLoading = false
+                                        isBuffering = false
+                                        false
+                                    }
                                 }
                             }
-                        }
-                        else -> {
-                            // Photo display
-                            Image(
-                                painter = rememberAsyncImagePainter(
-                                    model = mediaUri
-                                ),
-                                contentDescription = "Photo preview",
+                        )
+                        if (isVideoLoading || isBuffering) {
+                            Box(
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
                         }
                     }
+                    else -> {
+                        // Photo display without oversized black borders
+                        Image(
+                            painter = rememberAsyncImagePainter(model = mediaUri),
+                            contentDescription = "Photo preview",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
-                
-                // Media type indicator
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = if (isVideo) "VIDEO" else "PHOTO",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+            }
+
+            // Media type indicator
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = if (isVideo) "VIDEO" else "PHOTO",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         }
     }

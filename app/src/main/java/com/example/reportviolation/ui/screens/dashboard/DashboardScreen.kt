@@ -41,6 +41,7 @@ import com.example.reportviolation.ui.components.ViolationIconDisplayMode
 import com.example.reportviolation.data.model.ViolationReport
 import com.example.reportviolation.data.model.ReportStatus
 import com.example.reportviolation.data.model.ViolationType
+import com.example.reportviolation.utils.DateTimeUtils
 import com.example.reportviolation.data.remote.CitizenReportItem
 import com.example.reportviolation.domain.service.LanguageManager
 import com.example.reportviolation.ui.screens.reports.ReportsHistoryViewModel
@@ -142,10 +143,16 @@ fun DashboardScreen(
         }
     ) { padding ->
         when (selectedTab) {
-            0 -> HomeTab(padding, navController, uiState, onNavigateToReports = { filter ->
-                reportsInitialFilter = filter
-                selectedTab = 1
-            })
+            0 -> HomeTab(
+                padding = padding,
+                navController = navController,
+                uiState = uiState,
+                onNavigateToReports = { filter ->
+                    reportsInitialFilter = filter
+                    selectedTab = 1
+                },
+                onRefresh = { viewModel.refreshData() }
+            )
             1 -> ReportsTab(padding, navController, initialFilter = reportsInitialFilter)
             2 -> NotificationsTab(padding)
             3 -> ProfileTab(padding, navController)
@@ -159,15 +166,13 @@ fun HomeTab(
     padding: PaddingValues,
     navController: NavController,
     uiState: DashboardUiState,
-    onNavigateToReports: (String) -> Unit = {}
+    onNavigateToReports: (String) -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     // Pull to refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoading,
-        onRefresh = {
-            // Refresh dashboard data - this will trigger a reload
-            // The ViewModel will handle the data loading internally
-        }
+        onRefresh = onRefresh
     )
     
     Box(
@@ -407,7 +412,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
             
             // Date
             Text(
-                text = report.date,
+                text = formatReportRelativeIst(report.date),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -563,7 +568,8 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                         Text(
                             text = "No reports yet",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -1367,11 +1373,7 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                val displayTime = runCatching {
-                    val instant = java.time.Instant.parse(report.timestamp)
-                    java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.of("Asia/Kolkata"))
-                        .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"))
-                }.getOrDefault(report.timestamp)
+                val displayTime = formatReportRelativeIst(report.timestamp)
                 Text(
                     text = displayTime,
                     style = MaterialTheme.typography.bodyMedium,
@@ -1600,6 +1602,36 @@ private fun getStatusIcon(status: ReportStatus): androidx.compose.ui.graphics.ve
         ReportStatus.APPROVED -> Icons.Default.Check
         ReportStatus.REJECTED -> Icons.Default.Close
         ReportStatus.DUPLICATE -> Icons.Default.Warning
+    }
+}
+
+private fun formatReportRelativeIst(timestamp: String?): String {
+    if (timestamp.isNullOrBlank()) return ""
+    return try {
+        val instant = try { java.time.Instant.parse(timestamp) } catch (_: Exception) {
+            try { java.time.OffsetDateTime.parse(timestamp).toInstant() } catch (_: Exception) {
+                java.time.ZonedDateTime.parse(timestamp).toInstant()
+            }
+        }
+        val nowIst = DateTimeUtils.nowZonedIst()
+        val timeIst = instant.atZone(DateTimeUtils.IST)
+        val duration = java.time.Duration.between(timeIst, nowIst)
+        val seconds = duration.seconds
+        val minutes = duration.toMinutes()
+        when {
+            seconds < 60 && seconds >= 0 -> "Just now"
+            minutes in 1..59 -> "$minutes mins ago"
+            timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
+                "Today, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
+            timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
+                "Yesterday, " + DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a")
+            timeIst.year == nowIst.year ->
+                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
+            else ->
+                DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
+        }
+    } catch (_: Exception) {
+        timestamp
     }
 }
 

@@ -13,7 +13,6 @@ import com.example.reportviolation.ui.screens.camera.CameraScreen
 import com.example.reportviolation.ui.screens.dashboard.DashboardScreen
 import com.example.reportviolation.ui.screens.map.MapScreen
 import com.example.reportviolation.ui.screens.report.ReportViolationScreen
-import com.example.reportviolation.ui.screens.reports.ReportsHistoryScreen
 import com.example.reportviolation.ui.screens.reports.ReportDetailsScreen
 import com.example.reportviolation.ui.screens.rewards.RewardsScreen
 import com.example.reportviolation.ui.screens.splash.SplashScreen
@@ -98,9 +97,7 @@ fun AppNavigation(navController: NavHostController = androidx.navigation.compose
             MapScreen(navController)
         }
         
-        composable(Screen.ReportsHistory.route) {
-            ReportsHistoryScreen(navController)
-        }
+        // ReportsHistory route removed; Reports live under Dashboard -> Reports tab
         composable("complete_profile") {
             CompleteProfileScreen(navController)
         }

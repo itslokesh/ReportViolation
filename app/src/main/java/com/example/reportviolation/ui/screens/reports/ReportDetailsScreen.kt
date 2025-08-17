@@ -49,6 +49,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
+import com.example.reportviolation.ui.components.MediaPreviewDialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.media.MediaMetadataRetriever
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.runtime.produceState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -221,11 +227,22 @@ fun IncidentVisualSection(report: CitizenReportDetail) {
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
+        var showPreviewDialog by remember { mutableStateOf(false) }
+        val mediaUri = report.photoUrl ?: report.videoUrl
+
+        if (showPreviewDialog && !mediaUri.isNullOrBlank()) {
+            MediaPreviewDialog(
+                mediaUri = mediaUri,
+                onDismiss = { showPreviewDialog = false }
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
                 .background(Color(0xFF1976D2))
+                .clickable(enabled = !mediaUri.isNullOrBlank()) { showPreviewDialog = true }
         ) {
             if (report.photoUrl != null) {
                 Image(
@@ -234,6 +251,41 @@ fun IncidentVisualSection(report: CitizenReportDetail) {
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            } else if (report.videoUrl != null) {
+                val videoUrl = report.videoUrl
+                val thumbnail = produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, videoUrl) {
+                    value = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val retriever = MediaMetadataRetriever()
+                            retriever.setDataSource(videoUrl, HashMap())
+                            val frame = retriever.getFrameAtTime(1_000_000)
+                            retriever.release()
+                            frame?.asImageBitmap()
+                        }.getOrNull()
+                    }
+                }.value
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (thumbnail != null) {
+                        Image(
+                            bitmap = thumbnail,
+                            contentDescription = "Video thumbnail",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play video",
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.White
+                    )
+                }
             } else {
                 // Placeholder image
                 Image(

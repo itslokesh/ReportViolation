@@ -497,8 +497,9 @@ fun ReportViolationScreen(navController: NavController) {
                                         vehicleColor = null,
                                     )
                                     if (ok) {
-                                        navController.navigate(Screen.ReportsHistory.route) {
-                                            popUpTo(Screen.Dashboard.route) { inclusive = false }
+                                        navController.navigate("${com.example.reportviolation.ui.navigation.Screen.Dashboard.route}?initialTab=1") {
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -1370,9 +1371,10 @@ private suspend fun submitReport(
         println("Failed to save report: ${e.message}")
     }
 
-    // Navigate to reports page to show submissions
-    navController.navigate(Screen.ReportsHistory.route) {
-        popUpTo(Screen.Dashboard.route) { inclusive = false }
+    // Navigate to Reports tab on Dashboard
+    navController.navigate("${com.example.reportviolation.ui.navigation.Screen.Dashboard.route}?initialTab=1") {
+        popUpTo(0) { inclusive = true }
+        launchSingleTop = true
     }
 }
 
