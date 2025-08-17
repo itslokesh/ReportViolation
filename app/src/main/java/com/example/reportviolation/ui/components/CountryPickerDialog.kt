@@ -61,7 +61,7 @@ fun CountryPickerDialog(
                     modifier = Modifier.heightIn(max = 400.dp),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    items(filteredCountries) { country ->
+                    items(filteredCountries, key = { it.code }) { country ->
                         CountryItem(
                             country = country,
                             onClick = {

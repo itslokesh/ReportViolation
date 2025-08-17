@@ -20,12 +20,17 @@ import com.example.reportviolation.ui.navigation.Screen
 import kotlinx.coroutines.launch
 import com.example.reportviolation.ui.screens.auth.OtpNetworkBridge
 import com.example.reportviolation.ui.theme.DarkBlue
+import com.example.reportviolation.domain.service.CountryService
 
 @Composable
 fun LoginScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var phoneNumber by remember { mutableStateOf("") }
     var countryCode by remember { mutableStateOf("91") }
+    var phoneError by remember { mutableStateOf<String?>(null) }
+    val expectedLength by remember(countryCode) {
+        mutableStateOf(CountryService.getCountryByDialCode(countryCode)?.phoneNumberLength ?: 10)
+    }
     var showCountryPicker by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
@@ -58,46 +63,46 @@ fun LoginScreen(navController: NavController) {
         
         // Country code selector matching Create Account CX
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.width(140.dp)) {
-                OutlinedTextField(
-                    value = "+$countryCode",
-                    onValueChange = {},
-                    modifier = Modifier.matchParentSize(),
-                    label = { Text("Code", color = Color.Black) },
-                    trailingIcon = {
-                        IconButton(onClick = { showCountryPicker = true }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DarkBlue)
-                        }
-                    },
-                    singleLine = true,
-                    readOnly = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        disabledTextColor = Color.Black,
-                        focusedBorderColor = DarkBlue,
-                        unfocusedBorderColor = Color.Black,
-                        disabledBorderColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        disabledLabelColor = Color.Black
-                    )
+            OutlinedTextField(
+                value = "+$countryCode",
+                onValueChange = {},
+                modifier = Modifier
+                    .width(140.dp)
+                    .clickable { showCountryPicker = true },
+                label = { Text("Code", color = Color.Black) },
+                trailingIcon = {
+                    IconButton(onClick = { showCountryPicker = true }) {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = DarkBlue)
+                    }
+                },
+                singleLine = true,
+                readOnly = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    disabledTextColor = Color.Black,
+                    focusedBorderColor = DarkBlue,
+                    unfocusedBorderColor = Color.Black,
+                    disabledBorderColor = Color.Black,
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black,
+                    disabledLabelColor = Color.Black
                 )
-                // Ensure the entire field opens the picker on tap
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showCountryPicker = true }
-                )
-            }
+            )
             Spacer(Modifier.width(12.dp))
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { phoneNumber = it.filter { ch -> ch.isDigit() }.take(15) },
+                onValueChange = { raw ->
+                    val filtered = raw.filter { ch -> ch.isDigit() }.take(expectedLength)
+                    phoneNumber = filtered
+                    phoneError = if (filtered.length < expectedLength) "Enter a valid phone number" else null
+                },
                 label = { Text("Phone Number") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                isError = phoneError != null,
+                placeholder = { Text("${expectedLength} digits") }
             )
         }
         if (showCountryPicker) {
@@ -105,8 +110,20 @@ fun LoginScreen(navController: NavController) {
                 onDismiss = { showCountryPicker = false },
                 onCountrySelected = { country ->
                     countryCode = country.dialCode
+                    // Enforce max length for new country selection
+                    phoneNumber = phoneNumber.take(country.phoneNumberLength)
+                    phoneError = if (phoneNumber.length < country.phoneNumberLength) "Enter a valid phone number" else null
                     showCountryPicker = false
                 }
+            )
+        }
+
+        if (phoneError != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = phoneError ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
             )
         }
 
@@ -128,7 +145,7 @@ fun LoginScreen(navController: NavController) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading && phoneNumber.isNotBlank(),
+            enabled = !isLoading && phoneNumber.length == expectedLength,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DarkBlue,
                 contentColor = MaterialTheme.colorScheme.onPrimary
