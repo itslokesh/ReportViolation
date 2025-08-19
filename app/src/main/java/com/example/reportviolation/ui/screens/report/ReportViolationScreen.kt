@@ -85,6 +85,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 // Custom MapView that restricts one-finger dragging
 class RestrictedMapView(context: android.content.Context) : MapView(context) {
@@ -142,6 +146,8 @@ fun ReportViolationScreen(navController: NavController) {
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     var isLocationLoading by remember { mutableStateOf(false) }
     var locationAddress by remember { mutableStateOf<String?>(null) }
+    var vehicleNumber by remember { mutableStateOf("") }
+    var descriptionText by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -257,6 +263,7 @@ fun ReportViolationScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Automatic Location Detection (Clean and transparent)
@@ -395,6 +402,16 @@ fun ReportViolationScreen(navController: NavController) {
                         onShowDialog = { showViolationTypeDialog = true }
                     )
 
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Vehicle and Description inputs
+                    VehicleAndDescriptionSection(
+                        vehicleNumber = vehicleNumber,
+                        onVehicleNumberChange = { vehicleNumber = it },
+                        description = descriptionText,
+                        onDescriptionChange = { descriptionText = it }
+                    )
+
                     Spacer(modifier = Modifier.height(32.dp))
 
                     // Location Map Section (Below violation types)
@@ -475,7 +492,7 @@ fun ReportViolationScreen(navController: NavController) {
                                         selectedMediaUri = selectedMediaUri,
                                         violationTypes = selectedViolationTypes.map { it.name },
                                         severity = null,
-                                        description = "Reported via Android app",
+                                        description = descriptionText.ifBlank { null },
                                         latitude = currentLocation!!.latitude,
                                         longitude = currentLocation!!.longitude,
                                         address = parts.address,
@@ -484,7 +501,7 @@ fun ReportViolationScreen(navController: NavController) {
                                         district = parts.district,
                                         state = parts.state,
                                         isAnonymous = false,
-                                        vehicleNumber = null,
+                                        vehicleNumber = vehicleNumber.ifBlank { null },
                                         vehicleType = null,
                                         vehicleColor = null,
                                     )
@@ -642,74 +659,95 @@ fun MediaCaptureSection(
     onVideoClick: () -> Unit
 ) {
     Column {
-                    Text(
-                text = stringResource(R.string.capture_evidence),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = DarkBlue
-            )
-            
-            Spacer(modifier = Modifier.height(20.dp))
-        
+        Text(
+            text = stringResource(R.string.capture_evidence),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = DarkBlue
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Photo Capture Button
-            Card(
+            // Photo button
+            ElevatedCard(
                 onClick = onPhotoClick,
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                modifier = Modifier
+                    .weight(1f)
+                    .height(72.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = DarkBlue
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = stringResource(R.string.photo),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
                         color = DarkBlue
                     )
                 }
             }
-            
-            // Video Capture Button
-            Card(
+
+            // Video button
+            ElevatedCard(
                 onClick = onVideoClick,
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                modifier = Modifier
+                    .weight(1f)
+                    .height(72.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Videocam,
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = MediumBlue
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = stringResource(R.string.record_video),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
                         color = MediumBlue
                     )
                 }
             }
+        }
+
+        if (selectedMediaUri == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.take_photo_video),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -905,6 +943,84 @@ fun ViolationTypeSection(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun VehicleAndDescriptionSection(
+    vehicleNumber: String,
+    onVehicleNumberChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+) {
+    Column {
+        Text(
+            text = stringResource(R.string.vehicle_details),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = DarkBlue
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                // Vehicle number field with leading icon
+                OutlinedTextField(
+                    value = vehicleNumber,
+                    onValueChange = { input -> onVehicleNumberChange(input.uppercase()) },
+                    label = { Text(stringResource(R.string.vehicle_number)) },
+                    placeholder = { Text(stringResource(R.string.vehicle_number_placeholder)) },
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = null,
+                            tint = DarkBlue
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Ascii,
+                        imeAction = ImeAction.Next
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.description_header) + " (" + stringResource(R.string.optional_field) + ")",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    placeholder = { Text(stringResource(R.string.description_placeholder)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp),
+                    maxLines = 6,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { /* hide keyboard handled by caller if needed */ }
+                    )
+                )
             }
         }
     }
