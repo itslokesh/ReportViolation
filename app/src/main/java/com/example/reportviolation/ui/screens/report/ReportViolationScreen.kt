@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.reportviolation.ui.screens.report
 
 import android.Manifest
@@ -248,17 +250,7 @@ fun ReportViolationScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.report_violation_title)) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                }
-            )
+            ReportViolationScreenTopBar(onBack = { navController.navigateUp() })
         }
     ) { padding ->
         Column(
@@ -1612,4 +1604,19 @@ private fun buildDetailedAddress(address: Address, unknownArea: String, unknownC
         val city = address.adminArea ?: unknownCity
         "$locality, $city"
     }
+}
+
+@Composable
+fun ReportViolationScreenTopBar(onBack: () -> Unit) {
+    TopAppBar(
+        title = { Text(stringResource(id = R.string.report_violation_title)) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(id = R.string.back)
+                )
+            }
+        }
+    )
 }

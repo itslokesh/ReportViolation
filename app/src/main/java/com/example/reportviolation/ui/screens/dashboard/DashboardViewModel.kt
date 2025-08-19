@@ -61,6 +61,8 @@ class DashboardViewModel : ViewModel() {
                 val totalReports = firstPage.pagination.total
                 val approvedReports = allItems.count { (it.status ?: "").equals("APPROVED", ignoreCase = true) }
                 val inProgressReports = allItems.count { (it.status ?: "").equals("UNDER_REVIEW", ignoreCase = true) }
+                val submittedReports = allItems.count { (it.status ?: "").equals("PENDING", ignoreCase = true) }
+                val rejectedReports = allItems.count { (it.status ?: "").equals("REJECTED", ignoreCase = true) }
 
                 // Build latest 3 recent reports
                 val latestItems = allItems
@@ -94,6 +96,8 @@ class DashboardViewModel : ViewModel() {
                     totalReports = totalReports,
                     approvedReports = approvedReports,
                     pendingReports = inProgressReports,
+                    submittedReports = submittedReports,
+                    rejectedReports = rejectedReports,
                     totalPoints = 1250,
                     recentReports = latest3
                 )
@@ -142,6 +146,8 @@ data class DashboardUiState(
     val totalReports: Int = 0,
     val approvedReports: Int = 0,
     val pendingReports: Int = 0,
+    val submittedReports: Int = 0,
+    val rejectedReports: Int = 0,
     val totalPoints: Int = 0,
     val recentReports: List<RecentReport> = emptyList(),
     val error: String? = null

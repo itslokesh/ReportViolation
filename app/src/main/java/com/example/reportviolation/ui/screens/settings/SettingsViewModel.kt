@@ -19,7 +19,7 @@ data class SettingsUiState(
     val governmentNotifications: Boolean = true,
     val serviceUpdates: Boolean = true,
     val offers: Boolean = true,
-    val rewardPoints: String = "1,250",
+    val rewardPoints: String = "0",
     val showFeedback: Boolean = true,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -145,13 +145,18 @@ class SettingsViewModel : ViewModel() {
                 val res = api.getCitizenProfile()
                 val profile = res.data
                 val name = profile?.name?.takeIf { !it.isNullOrBlank() } ?: "Citizen"
+                val points = (profile?.pointsEarned ?: 0).coerceAtLeast(0)
                 cachedUserName = name
                 lastProfileFetchMs = System.currentTimeMillis()
-                _uiState.update { it.copy(userName = name) }
+                _uiState.update { it.copy(userName = name, rewardPoints = formatPoints(points)) }
             }.onFailure {
                 // On failure, if we have cached name, keep using it
                 cachedUserName?.let { name -> _uiState.update { it.copy(userName = name) } }
             }
         }
+    }
+
+    private fun formatPoints(points: Int): String {
+        return java.text.NumberFormat.getIntegerInstance().format(points)
     }
 }

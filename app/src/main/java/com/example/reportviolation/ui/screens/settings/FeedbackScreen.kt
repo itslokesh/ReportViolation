@@ -2,6 +2,7 @@ package com.example.reportviolation.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -58,27 +59,20 @@ fun FeedbackScreen(navController: NavController) {
 
     BackHandler { navigateToProfileTab() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Send feedback") },
-                navigationIcon = {
-                    IconButton(onClick = { navigateToProfileTab() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    // Root Scaffold owns bottom tabs; keep this screen simple
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(text = "Send feedback", style = MaterialTheme.typography.titleLarge)
+            }
 
             var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {

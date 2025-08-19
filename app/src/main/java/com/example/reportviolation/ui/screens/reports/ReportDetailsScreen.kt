@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.navigation.NavController
 import android.content.Intent
 import android.net.Uri
@@ -47,6 +48,8 @@ import com.example.reportviolation.ui.navigation.Screen
 import com.example.reportviolation.utils.getLocalizedViolationTypeName
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.time.Instant
+import com.example.reportviolation.utils.DateTimeUtils
 import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
 import com.example.reportviolation.ui.components.MediaPreviewDialog
@@ -55,6 +58,7 @@ import kotlinx.coroutines.withContext
 import android.media.MediaMetadataRetriever
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.produceState
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -73,12 +77,16 @@ fun ReportDetailsScreen(
     var report by remember { mutableStateOf<CitizenReportDetail?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var events by remember { mutableStateOf<List<com.example.reportviolation.data.remote.ReportEvent>>(emptyList()) }
     
     // Function to load report data
     suspend fun loadReport() {
         try {
             val res = reportsApi.getReport(reportId.toString())
             report = res.data
+            // Load events timeline
+            val ev = runCatching { reportsApi.getReportEvents(reportId.toString()).data }.getOrNull()
+            events = ev ?: emptyList()
         } catch (e: Exception) {
             // Handle error
         } finally {
@@ -93,20 +101,7 @@ fun ReportDetailsScreen(
     
     // Handle system back gesture and back button
     BackHandler {
-        // Debug: Print the sourceTab value
-        println("BackHandler triggered. sourceTab: $sourceTab")
-        
-        // Navigate back to the correct tab
-        if (sourceTab == "reports") {
-            println("BackHandler: Navigating to dashboard with reports tab")
-            // Navigate back to dashboard with reports tab selected
-            navController.navigate("${Screen.Dashboard.route}?initialTab=1") {
-                popUpTo(0) { inclusive = true }
-            }
-        } else {
-            println("BackHandler: Using default navigateUp")
-            navController.navigateUp()
-        }
+        navController.navigateUp()
     }
     
     // Pull to refresh state
@@ -121,33 +116,12 @@ fun ReportDetailsScreen(
         }
     )
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.report_details)) },
-                navigationIcon = {
-                    IconButton(onClick = { 
-                        // Trigger the same logic as BackHandler
-                        if (sourceTab == "reports") {
-                            navController.navigate("${Screen.Dashboard.route}?initialTab=1") {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        } else {
-                            navController.navigateUp()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1976D2)
-                )
-            )
-        }
-    ) { padding ->
+    // Respect inner padding from root Scaffold (bottom bar)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -157,7 +131,7 @@ fun ReportDetailsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding),
+                        ,
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -166,13 +140,12 @@ fun ReportDetailsScreen(
                 report?.let { detail ->
                     ReportDetailsContent(
                         report = detail,
-                        modifier = Modifier.padding(padding)
+                        events = events
                     )
                 } ?: run {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
+                            .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("Report not found")
@@ -193,6 +166,7 @@ fun ReportDetailsScreen(
 @Composable
 fun ReportDetailsContent(
     report: CitizenReportDetail,
+    events: List<com.example.reportviolation.data.remote.ReportEvent> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -201,6 +175,28 @@ fun ReportDetailsContent(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        // Header (replaces removed TopAppBar)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+            IconButton(onClick = { backDispatcher?.onBackPressed() }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+            Text(
+                text = stringResource(R.string.report_details),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
         // Incident Visual Section
         IncidentVisualSection(report = report)
         
@@ -212,9 +208,22 @@ fun ReportDetailsContent(
         Spacer(modifier = Modifier.height(16.dp))
         
         // Status Timeline Section
-        StatusTimelineSection(report = report)
+        StatusTimelineSection(report = report, events = events)
         
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Review Notes Section
+        ReviewNotesSection(report)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Approved Violation Types (explicit section before rewards)
+        ApprovedViolationTypesSection(report)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Reward Points Section
+        RewardPointsSection(report)
     }
 }
 
@@ -474,7 +483,10 @@ fun LocationDetailRow(
 }
 
 @Composable
-fun StatusTimelineSection(report: com.example.reportviolation.data.remote.CitizenReportDetail) {
+fun StatusTimelineSection(
+    report: com.example.reportviolation.data.remote.CitizenReportDetail,
+    events: List<com.example.reportviolation.data.remote.ReportEvent> = emptyList()
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -492,34 +504,78 @@ fun StatusTimelineSection(report: com.example.reportviolation.data.remote.Citize
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            // Timeline items
-            TimelineItem(
-                status = stringResource(R.string.status_received),
-                date = report.timestamp,
-                isCompleted = true,
-                isFirst = true
-            )
-            
-            TimelineItem(
-                status = stringResource(R.string.status_submitted_timeline),
-                date = report.timestamp,
-                isCompleted = true
-            )
-            
-            TimelineItem(
-                status = stringResource(R.string.status_in_review),
-                date = report.timestamp,
-                isCompleted = report.status != null && report.status != com.example.reportviolation.data.model.ReportStatus.PENDING.name,
-                isCurrent = report.status == com.example.reportviolation.data.model.ReportStatus.UNDER_REVIEW.name
-            )
-            
-            TimelineItem(
-                status = stringResource(R.string.status_resolved_timeline),
-                date = if (report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name) stringResource(R.string.status_resolved_timeline) else stringResource(R.string.status_pending),
-                isCompleted = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name,
-                isLast = true,
-                isResolved = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name
-            )
+            val timelineEvents = events.filter { type ->
+                val t = (type.type ?: "").uppercase()
+                t == "STATUS_UPDATED" || t == "POINTS_AWARDED"
+            }
+            if (timelineEvents.isNotEmpty()) {
+                timelineEvents.sortedBy { it.createdAt }.forEachIndexed { index, ev ->
+                    val statusFromMeta = runCatching {
+                        val meta = ev.metadata
+                        if (!meta.isNullOrBlank()) {
+                            val obj = com.google.gson.JsonParser.parseString(meta).asJsonObject
+                            obj.get("status")?.asString
+                        } else null
+                    }.getOrNull()
+                    val statusKey = statusFromMeta ?: ev.status
+                    val label = if ((ev.type ?: "").equals("POINTS_AWARDED", ignoreCase = true)) {
+                        stringResource(R.string.status_points_rewarded)
+                    } else when (statusKey) {
+                        com.example.reportviolation.data.model.ReportStatus.PENDING.name -> stringResource(R.string.status_submitted_timeline)
+                        com.example.reportviolation.data.model.ReportStatus.UNDER_REVIEW.name -> stringResource(R.string.status_in_review)
+                        com.example.reportviolation.data.model.ReportStatus.APPROVED.name -> stringResource(R.string.status_report_approved)
+                        com.example.reportviolation.data.model.ReportStatus.REJECTED.name -> stringResource(R.string.status_rejected)
+                        else -> {
+                            // Map some common raw keys to human labels
+                            when ((statusKey ?: ev.type ?: "").lowercase()) {
+                                "submitted", "submission", "received" -> stringResource(R.string.status_submitted_timeline)
+                                "under_review", "in_review", "review" -> stringResource(R.string.status_in_review)
+                                "approved", "resolved" -> stringResource(R.string.status_report_approved)
+                                "rejected", "declined" -> stringResource(R.string.status_rejected)
+                                else -> (statusKey ?: ev.type ?: "")
+                            }
+                        }
+                    }
+                    val isRejected = (statusKey == com.example.reportviolation.data.model.ReportStatus.REJECTED.name)
+                    TimelineItem(
+                        status = label,
+                        date = formatEventRelativeIst(ev.createdAt),
+                        isCompleted = true,
+                        isFirst = index == 0,
+                        isLast = index == timelineEvents.lastIndex,
+                        isCurrent = (statusKey == com.example.reportviolation.data.model.ReportStatus.UNDER_REVIEW.name),
+                        isResolved = (statusKey == com.example.reportviolation.data.model.ReportStatus.APPROVED.name),
+                        isRejected = isRejected
+                    )
+                }
+            } else {
+                // Fallback static timeline
+                TimelineItem(
+                    status = stringResource(R.string.status_received),
+                    date = formatEventRelativeIst(report.timestamp),
+                    isCompleted = true,
+                    isFirst = true
+                )
+                TimelineItem(
+                    status = stringResource(R.string.status_submitted_timeline),
+                    date = formatEventRelativeIst(report.timestamp),
+                    isCompleted = true
+                )
+                TimelineItem(
+                    status = stringResource(R.string.status_in_review),
+                    date = formatEventRelativeIst(report.timestamp),
+                    isCompleted = report.status != null && report.status != com.example.reportviolation.data.model.ReportStatus.PENDING.name,
+                    isCurrent = report.status == com.example.reportviolation.data.model.ReportStatus.UNDER_REVIEW.name
+                )
+                TimelineItem(
+                    status = stringResource(R.string.status_report_approved),
+                    date = formatEventRelativeIst(report.updatedAt ?: report.timestamp),
+                    isCompleted = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name,
+                    isLast = true,
+                    isResolved = report.status == com.example.reportviolation.data.model.ReportStatus.APPROVED.name,
+                    isRejected = report.status == com.example.reportviolation.data.model.ReportStatus.REJECTED.name
+                )
+            }
         }
     }
 }
@@ -532,7 +588,8 @@ fun TimelineItem(
     isFirst: Boolean = false,
     isLast: Boolean = false,
     isCurrent: Boolean = false,
-    isResolved: Boolean = false
+    isResolved: Boolean = false,
+    isRejected: Boolean = false
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -540,7 +597,10 @@ fun TimelineItem(
         // Timeline line and icon
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(40.dp)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .width(40.dp)
+                .fillMaxHeight()
         ) {
             if (!isFirst) {
                 Box(
@@ -558,23 +618,32 @@ fun TimelineItem(
                 modifier = Modifier
                     .size(24.dp)
                     .background(
-                        when {
-                            isResolved -> Color(0xFF4CAF50)
-                            isCurrent -> Color(0xFF1976D2)
-                            isCompleted -> Color(0xFF1976D2)
-                            else -> Color(0xFFE0E0E0)
+                        if (isRejected) {
+                            Color(0xFFE53935)
+                        } else if (isResolved) {
+                            Color(0xFF4CAF50)
+                        } else if (isCurrent || isCompleted) {
+                            Color(0xFF1976D2)
+                        } else {
+                            Color(0xFFE0E0E0)
                         },
                         shape = RoundedCornerShape(12.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
+                val iconVector = if (isRejected) {
+                    Icons.Default.Close
+                } else if (isResolved) {
+                    Icons.Default.Check
+                } else if (isCurrent) {
+                    Icons.Default.Refresh
+                } else if (isCompleted) {
+                    Icons.Default.Check
+                } else {
+                    Icons.Default.Schedule
+                }
                 Icon(
-                    imageVector = when {
-                        isResolved -> Icons.Default.Check
-                        isCurrent -> Icons.Default.Refresh
-                        isCompleted -> Icons.Default.Check
-                        else -> Icons.Default.Schedule
-                    },
+                    imageVector = iconVector,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = Color.White
@@ -595,19 +664,26 @@ fun TimelineItem(
         
         Spacer(modifier = Modifier.width(12.dp))
         
-        // Status details
+        // Status details aligned with icon center
         Column(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .align(Alignment.CenterVertically)
         ) {
             Text(
                 text = status,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = when {
-                    isResolved -> Color(0xFF4CAF50)
-                    isCurrent -> Color(0xFF1976D2)
-                    isCompleted -> Color.Black
-                    else -> Color.Gray
+                color = if (isRejected) {
+                    Color(0xFFE53935)
+                } else if (isResolved) {
+                    Color(0xFF4CAF50)
+                } else if (isCurrent) {
+                    Color(0xFF1976D2)
+                } else if (isCompleted) {
+                    Color.Black
+                } else {
+                    Color.Gray
                 }
             )
             Text(
@@ -621,5 +697,189 @@ fun TimelineItem(
 
 private fun formatDateTime(dateTime: java.time.LocalDateTime): String {
     return com.example.reportviolation.utils.DateTimeUtils.formatForUi(dateTime, "MMM dd, yyyy, h:mm a")
+}
+
+@Composable
+private fun formatEventRelativeIst(createdAt: String?): String {
+    if (createdAt.isNullOrBlank()) return ""
+    val instant = runCatching {
+        try { Instant.parse(createdAt) } catch (_: Exception) {
+            try { java.time.OffsetDateTime.parse(createdAt).toInstant() } catch (_: Exception) {
+                java.time.ZonedDateTime.parse(createdAt).toInstant()
+            }
+        }
+    }.getOrNull() ?: return ""
+
+    val nowIst = DateTimeUtils.nowZonedIst()
+    val timeIst = instant.atZone(DateTimeUtils.IST)
+    val duration = java.time.Duration.between(timeIst, nowIst)
+    val seconds = duration.seconds
+    val minutes = duration.toMinutes()
+    return when {
+        seconds < 60 && seconds >= 0 -> stringResource(R.string.time_just_now)
+        minutes in 1..59 -> stringResource(R.string.time_minutes_ago, minutes)
+        timeIst.toLocalDate().isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_today_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.toLocalDate().plusDays(1).isEqual(nowIst.toLocalDate()) ->
+            stringResource(R.string.time_yesterday_at, DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "hh:mm a"))
+        timeIst.year == nowIst.year -> DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM, hh:mm a")
+        else -> DateTimeUtils.formatForUi(timeIst.toLocalDateTime(), pattern = "dd MMM yyyy, hh:mm a")
+    }
+}
+
+@Composable
+fun ReviewNotesSection(report: CitizenReportDetail) {
+    val notes = report.reviewNotes
+    if (notes.isNullOrBlank()) return
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.review_notes),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = notes,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+fun RewardPointsSection(report: CitizenReportDetail) {
+    val isApproved = report.status == ReportStatus.APPROVED.name
+    val points = report.pointsAwarded ?: 0
+    if (!isApproved || points <= 0) return
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = stringResource(R.string.rewards_points_earned),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = points.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ApprovedViolationsSection(report: CitizenReportDetail) {
+    if (report.status != ReportStatus.APPROVED.name) return
+    val items: List<String> = runCatching {
+        val json = report.mediaMetadata
+        if (!json.isNullOrBlank()) {
+            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+            obj.getAsJsonArray("approvedViolationTypes")?.mapNotNull { it.asString } ?: emptyList()
+        } else emptyList()
+    }.getOrDefault(emptyList())
+    if (items.isEmpty()) return
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.approved_violations),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            val ctx = LocalContext.current
+            items.forEachIndexed { index, code ->
+                val friendly = runCatching { com.example.reportviolation.data.model.ViolationType.valueOf(code) }
+                    .getOrNull()
+                    ?.let { getLocalizedViolationTypeName(it, ctx) }
+                    ?: code.replace('_', ' ').lowercase().split(' ').joinToString(" ") { it.replaceFirstChar { c -> c.titlecase() } }
+                Text(
+                    text = "• " + friendly,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (index != items.lastIndex) Spacer(modifier = Modifier.height(6.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun ApprovedViolationTypesSection(report: CitizenReportDetail) {
+    // Parse approvedViolationTypes from mediaMetadata JSON; fallback to single violationType if status is APPROVED
+    val itemsFromMedia: List<String> = runCatching {
+        val json = report.mediaMetadata
+        if (!json.isNullOrBlank()) {
+            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+            obj.getAsJsonArray("approvedViolationTypes")?.mapNotNull { it.asString } ?: emptyList()
+        } else emptyList()
+    }.getOrDefault(emptyList())
+    val items: List<String> = if (itemsFromMedia.isNotEmpty()) itemsFromMedia else {
+        if (report.status == ReportStatus.APPROVED.name && !report.violationType.isNullOrBlank()) listOf(report.violationType!!) else emptyList()
+    }
+    if (items.isEmpty()) return
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.approved_violation_types),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            val ctx = LocalContext.current
+            items.forEachIndexed { index, code ->
+                val friendly = runCatching { com.example.reportviolation.data.model.ViolationType.valueOf(code) }
+                    .getOrNull()
+                    ?.let { getLocalizedViolationTypeName(it, ctx) }
+                    ?: code.replace('_', ' ').lowercase().split(' ').joinToString(" ") { it.replaceFirstChar { c -> c.titlecase() } }
+                Text(
+                    text = "• " + friendly,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (index != items.lastIndex) Spacer(modifier = Modifier.height(6.dp))
+            }
+        }
+    }
 }
 

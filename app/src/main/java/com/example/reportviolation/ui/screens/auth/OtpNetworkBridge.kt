@@ -17,6 +17,8 @@ object OtpNetworkBridge {
     private val authApi: AuthApi by lazy { authRetrofit.create(AuthApi::class.java) }
     private val uploadApi: UploadApi by lazy { authRetrofit.create(UploadApi::class.java) }
     private val reportsApi: CitizenReportsApi by lazy { authRetrofit.create(CitizenReportsApi::class.java) }
+    private val notifApi: CitizenNotificationsApi by lazy { authRetrofit.create(CitizenNotificationsApi::class.java) }
+    private val rewardsApi: CitizenRewardsApi by lazy { authRetrofit.create(CitizenRewardsApi::class.java) }
     private val gson by lazy { com.google.gson.Gson() }
 
     suspend fun sendOtp(fullPhone: String): Boolean {
@@ -74,6 +76,24 @@ object OtpNetworkBridge {
         val res = reportsApi.createReport(body)
         println("API_CREATE_REPORT response=" + gson.toJson(res))
         return res.success
+    }
+
+    // Notifications
+    suspend fun listNotifications(page: Int = 1, limit: Int = 20): ApiResponse<NotificationsPage> {
+        return notifApi.listNotifications(page, limit)
+    }
+
+    suspend fun markNotificationRead(id: String): ApiResponse<Any> {
+        return notifApi.markRead(id)
+    }
+
+    suspend fun markAllNotificationsRead(): ApiResponse<Any> {
+        return notifApi.markAllRead()
+    }
+
+    // Rewards
+    suspend fun listRewardTransactions(page: Int = 1, limit: Int = 20): ApiResponse<RewardsTransactionsPage> {
+        return rewardsApi.listTransactions(page, limit)
     }
 }
 

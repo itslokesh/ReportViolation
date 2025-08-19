@@ -33,6 +33,7 @@ data class CitizenProfile(
     val phoneNumberEncrypted: String?,
     val name: String?,
     val emailEncrypted: String?,
+    @SerializedName(value = "pointsEarned", alternate = ["totalPoints", "points", "rewardPoints"]) val pointsEarned: Int? = null,
 )
 
 data class RefreshBody(val refreshToken: String)
@@ -89,6 +90,7 @@ data class CitizenReportItem(
     val status: String? = null,
     val photoUrl: String? = null,
     val videoUrl: String? = null,
+    val mediaMetadata: String? = null,
 )
 
 data class Pagination(
@@ -144,6 +146,17 @@ data class Reviewer(
     val id: String? = null,
     val name: String? = null,
     val badgeNumber: String? = null,
+)
+
+// Report events timeline
+data class ReportEvent(
+    val id: String,
+    val type: String? = null,      // e.g., STATUS_CHANGED, NOTE_ADDED
+    val status: String? = null,    // e.g., PENDING, UNDER_REVIEW, APPROVED, REJECTED
+    val message: String? = null,
+    val actorName: String? = null,
+    val metadata: String? = null,  // Raw JSON string; may contain { "status": "..." }
+    val createdAt: String,
 )
 
 // Feedback (submit)
@@ -204,6 +217,41 @@ data class Responder(
     val id: String? = null,
     val name: String? = null,
     val role: String? = null,
+)
+
+// Notifications
+data class NotificationItem(
+    val id: String,
+    val citizenId: String? = null,
+    val reportId: Long? = null,
+    val type: String? = null,
+    val title: String? = null,
+    val message: String? = null,
+    val readAt: String? = null,
+    val createdAt: String,
+)
+
+data class NotificationsPage(
+    @SerializedName(value = "notifications", alternate = ["items"]) val notifications: List<NotificationItem> = emptyList(),
+    val pagination: Pagination
+)
+
+// Rewards Transactions
+data class RewardTransaction(
+    val id: String,
+    val citizenId: String? = null,
+    val type: String, // EARN | REDEEM | ADJUST
+    val reportId: Long? = null,
+    val points: Int,
+    val description: String? = null,
+    val metadata: String? = null,
+    val balanceAfter: Int? = null,
+    val createdAt: String,
+)
+
+data class RewardsTransactionsPage(
+    @SerializedName(value = "transactions", alternate = ["items"]) val transactions: List<RewardTransaction> = emptyList(),
+    val pagination: Pagination
 )
 
 

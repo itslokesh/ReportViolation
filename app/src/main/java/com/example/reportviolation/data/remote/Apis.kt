@@ -57,6 +57,10 @@ interface CitizenReportsApi {
 
     @GET("/api/citizen/reports/{id}")
     suspend fun getReport(@Path("id") id: String): ApiResponse<CitizenReportDetail>
+
+    // Events timeline for a report
+    @GET("/api/citizen/reports/{id}/events")
+    suspend fun getReportEvents(@Path("id") id: String): ApiResponse<List<ReportEvent>>
 }
 
 interface FeedbackApi {
@@ -68,6 +72,28 @@ interface FeedbackApi {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 20,
     ): ApiResponse<FeedbackListPage>
+}
+
+interface CitizenNotificationsApi {
+    @GET("/api/citizen/notifications")
+    suspend fun listNotifications(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+    ): ApiResponse<NotificationsPage>
+
+    @PATCH("/api/citizen/notifications/{id}/read")
+    suspend fun markRead(@Path("id") id: String): ApiResponse<Any>
+
+    @PATCH("/api/citizen/notifications/read-all")
+    suspend fun markAllRead(): ApiResponse<Any>
+}
+
+interface CitizenRewardsApi {
+    @GET("/api/citizen/rewards/transactions")
+    suspend fun listTransactions(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+    ): ApiResponse<RewardsTransactionsPage>
 }
 
 

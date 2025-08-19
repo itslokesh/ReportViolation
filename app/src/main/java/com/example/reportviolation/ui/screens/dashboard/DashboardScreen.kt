@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -51,6 +52,28 @@ import com.example.reportviolation.utils.getLocalizedStatusName
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import com.example.reportviolation.data.remote.NotificationItem
+import com.example.reportviolation.ui.screens.auth.OtpNetworkBridge
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.unit.IntOffset
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.compose.ui.platform.LocalContext
+import com.example.reportviolation.utils.push.AppFirebaseMessagingService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,80 +90,10 @@ fun DashboardScreen(
     // Note: Back navigation preservation will be handled by the navigation system
     // The selectedTab state will be maintained automatically
     
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            Icons.Default.Home, 
-                            contentDescription = "Home",
-                            tint = if (selectedTab == 0) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    label = { 
-                        Text(
-                            stringResource(R.string.home), 
-                            color = if (selectedTab == 0) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 }
-                )
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            Icons.Default.Description, 
-                            contentDescription = "Reports",
-                            tint = if (selectedTab == 1) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    label = { 
-                        Text(
-                            stringResource(R.string.reports), 
-                            color = if (selectedTab == 1) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 }
-                )
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            Icons.Default.Notifications, 
-                            contentDescription = "Notifications",
-                            tint = if (selectedTab == 2) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    label = { 
-                        Text(
-                            stringResource(R.string.notifications), 
-                            color = if (selectedTab == 2) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 }
-                )
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            Icons.Default.Person, 
-                            contentDescription = "Profile",
-                            tint = if (selectedTab == 3) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    label = { 
-                        Text(
-                            stringResource(R.string.profile), 
-                            color = if (selectedTab == 3) DarkBlue else Color.Gray
-                        ) 
-                    },
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 }
-                )
-            }
-        }
-    ) { padding ->
+    // Tabs are now owned by root Scaffold in AppNavigation
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Local padding placeholder to satisfy child composables expecting a PaddingValues parameter
+        val padding = PaddingValues(0.dp)
         when (selectedTab) {
             0 -> HomeTab(
                 padding = padding,
@@ -183,7 +136,6 @@ fun HomeTab(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(padding)
                 .padding(16.dp)
         ) {
             // Header
@@ -214,25 +166,58 @@ fun HomeTab(
                             .clickable { onNavigateToReports("Submitted") }
                     )
                     StatCard(
-                        value = uiState.pendingReports.toString(),
-                        label = stringResource(R.string.filter_in_progress),
+                        value = uiState.submittedReports.toString(),
+                        label = stringResource(R.string.to_be_reviewed),
                         backgroundColor = MediumBlue,
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onNavigateToReports("In Progress") }
+                            .clickable { onNavigateToReports("Submitted") }
                     )
                     StatCard(
-                        value = uiState.approvedReports.toString(),
-                        label = stringResource(R.string.filter_resolved),
+                        value = uiState.pendingReports.toString(),
+                        label = stringResource(R.string.filter_under_review),
                         backgroundColor = LightBlue,
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onNavigateToReports("Resolved") }
+                            .clickable { onNavigateToReports("Under Review") }
                     )
                 }
             }
             
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            // Second row for Approved and Rejected (same width as first-row cards)
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                androidx.compose.foundation.layout.BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val spacing = 12.dp
+                    val cardWidth = (maxWidth - spacing * 2) / 3f
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        StatCard(
+                            value = uiState.approvedReports.toString(),
+                            label = stringResource(R.string.filter_approved),
+                            backgroundColor = Color(0xFF4CAF50),
+                            modifier = Modifier
+                                .width(cardWidth)
+                                .clickable { onNavigateToReports("Approved") }
+                        )
+                        Spacer(modifier = Modifier.width(spacing))
+                        StatCard(
+                            value = uiState.rejectedReports.toString(),
+                            label = stringResource(R.string.filter_rejected),
+                            backgroundColor = Color(0xFFE53935),
+                            modifier = Modifier
+                                .width(cardWidth)
+                                .clickable { onNavigateToReports("Rejected") }
+                        )
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(24.dp)) }
             
             // Recent Reports Section
             item {
@@ -385,7 +370,7 @@ fun RecentReportItem(report: RecentReport, navController: NavController) {
         ),
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -441,8 +426,15 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
     var tempSelectedViolationType by remember { mutableStateOf<ViolationType?>(null) }
     var tempSortOrder by remember { mutableStateOf("Newest First") }
     
-    val filters = listOf("All", "Submitted", "In Progress", "Resolved")
+    val filters = listOf("All", "Submitted", "Under Review", "Approved", "Rejected")
+    var accumDragX by remember { mutableStateOf(0f) }
+    var lastFilterIndex by remember { mutableStateOf(0) }
+    var animDirection by remember { mutableStateOf(0) } // -1 left, 1 right
+    val density = LocalDensity.current
     val sortOptions = listOf("Newest First", "Oldest First")
+    val controlsBarHeight = 44.dp
+    
+    // Controls row will be placed at the bottom of this tab
     
     // Pull to refresh state for reports
     val pullRefreshState = rememberPullRefreshState(
@@ -456,12 +448,41 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
         modifier = Modifier
             .fillMaxSize()
             .pullRefresh(pullRefreshState)
+            .pointerInput(selectedFilter) {
+                // Swipe left/right to change quick filter
+                val thresholdPx = with(density) { 64.dp.toPx() }
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, dragAmount ->
+                        accumDragX += dragAmount
+                    },
+                    onDragEnd = {
+                        if (accumDragX > thresholdPx) {
+                            // Swiped right → previous filter
+                            val idx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                            val prev = if (idx <= 0) filters.last() else filters[idx - 1]
+                            animDirection = -1
+                            selectedFilter = prev
+                            lastFilterIndex = filters.indexOf(prev)
+                        } else if (accumDragX < -thresholdPx) {
+                            // Swiped left → next filter
+                            val idx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                            val next = if (idx < 0) filters.first() else filters[(idx + 1) % filters.size]
+                            animDirection = 1
+                            selectedFilter = next
+                            lastFilterIndex = filters.indexOf(next)
+                        }
+                        accumDragX = 0f
+                    },
+                    onDragCancel = { accumDragX = 0f },
+                    onDragStart = { accumDragX = 0f }
+                )
+            }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(padding)
+                .padding(bottom = 0.dp)
         ) {
         // Header with title (matching Home tab style)
         Text(
@@ -471,45 +492,104 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
             modifier = Modifier.padding(16.dp)
         )
         
-        // Filter tabs only
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
+        // Filter tabs only with slide animation on change
+        androidx.compose.animation.AnimatedContent(
+            targetState = selectedFilter,
+            transitionSpec = {
+                androidx.compose.animation.slideInHorizontally { fullWidth -> fullWidth } +
+                    androidx.compose.animation.fadeIn() togetherWith
+                    (androidx.compose.animation.slideOutHorizontally { fullWidth -> -fullWidth / 2 } +
+                        androidx.compose.animation.fadeOut())
+            },
+            label = "filtersAnimated"
+        ) { _ ->
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
             item {
                 FilterTab(
                     text = stringResource(R.string.filter_all),
                     isSelected = selectedFilter == "All",
-                    onClick = { selectedFilter = "All" }
+                    onClick = {
+                        val oldIdx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                        val newIdx = 0
+                        animDirection = if (newIdx - oldIdx >= 0) 1 else -1
+                        selectedFilter = "All"
+                    }
                 )
             }
             item {
                 FilterTab(
                     text = stringResource(R.string.filter_submitted),
                     isSelected = selectedFilter == "Submitted",
-                    onClick = { selectedFilter = "Submitted" }
+                    onClick = {
+                        val oldIdx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                        val newIdx = 1
+                        animDirection = if (newIdx - oldIdx >= 0) 1 else -1
+                        selectedFilter = "Submitted"
+                    }
                 )
             }
             item {
                 FilterTab(
-                    text = stringResource(R.string.filter_in_progress),
-                    isSelected = selectedFilter == "In Progress",
-                    onClick = { selectedFilter = "In Progress" }
+                    text = stringResource(R.string.filter_under_review),
+                    isSelected = selectedFilter == "Under Review",
+                    onClick = {
+                        val oldIdx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                        val newIdx = 2
+                        animDirection = if (newIdx - oldIdx >= 0) 1 else -1
+                        selectedFilter = "Under Review"
+                    }
                 )
             }
             item {
                 FilterTab(
-                    text = stringResource(R.string.filter_resolved),
-                    isSelected = selectedFilter == "Resolved",
-                    onClick = { selectedFilter = "Resolved" }
+                    text = stringResource(R.string.filter_approved),
+                    isSelected = selectedFilter == "Approved",
+                    onClick = {
+                        val oldIdx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                        val newIdx = 3
+                        animDirection = if (newIdx - oldIdx >= 0) 1 else -1
+                        selectedFilter = "Approved"
+                    }
                 )
+            }
+            item {
+                FilterTab(
+                    text = stringResource(R.string.filter_rejected),
+                    isSelected = selectedFilter == "Rejected",
+                    onClick = {
+                        val oldIdx = filters.indexOf(selectedFilter).coerceAtLeast(0)
+                        val newIdx = 4
+                        animDirection = if (newIdx - oldIdx >= 0) 1 else -1
+                        selectedFilter = "Rejected"
+                    }
+                )
+            }
             }
         }
         
-        // Reports list
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Reports list with sliding animation based on selectedFilter changes
+        AnimatedContent(
+            targetState = selectedFilter,
+            transitionSpec = {
+                val dir = animDirection
+                if (dir >= 0) {
+                    slideInHorizontally { fullWidth -> fullWidth } + fadeIn() togetherWith
+                        (slideOutHorizontally { fullWidth -> -fullWidth / 2 } + fadeOut())
+                } else {
+                    slideInHorizontally { fullWidth -> -fullWidth } + fadeIn() togetherWith
+                        (slideOutHorizontally { fullWidth -> fullWidth / 2 } + fadeOut())
+                }
+            },
+            label = "reportsListAnimated"
+        ) { _ ->
         when {
             uiState.isLoading -> {
                 Box(
@@ -590,15 +670,25 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                         }.getOrDefault(ReportStatus.PENDING)
                         val statusMatch = when (selectedFilter) {
                             "Submitted" -> statusEnum == ReportStatus.PENDING
-                            "In Progress" -> statusEnum == ReportStatus.UNDER_REVIEW
-                            "Resolved" -> statusEnum == ReportStatus.APPROVED
+                            "Under Review" -> statusEnum == ReportStatus.UNDER_REVIEW
+                            "Approved" -> statusEnum == ReportStatus.APPROVED
+                            "Rejected" -> statusEnum == ReportStatus.REJECTED
                             else -> true
                         }
                         val typeMatch = if (selectedViolationTypes.isEmpty()) {
                             true
                         } else {
-                            val names = report.violationTypes ?: emptyList()
-                            selectedViolationTypes.any { sel -> names.any { it == sel.name } }
+                            // Prefer mediaMetadata.violationTypes if present
+                            val namesFromMedia = runCatching {
+                                val json = report.mediaMetadata
+                                if (!json.isNullOrBlank()) {
+                                    val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+                                    obj.getAsJsonArray("violationTypes")?.mapNotNull { it.asString }
+                                } else null
+                            }.getOrNull()
+                            val names = (namesFromMedia ?: report.violationTypes ?: emptyList())
+                            // UNION semantics: include if any selected type matches
+                            selectedViolationTypes.any { sel -> names.any { it.equals(sel.name, ignoreCase = true) } }
                         }
                         statusMatch && typeMatch
                     }
@@ -649,7 +739,7 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                             .weight(1f)
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(top = 16.dp, bottom = controlsBarHeight + 8.dp)
                     ) {
                         items(filteredReports) { report ->
                             ReportCardNew(
@@ -662,82 +752,104 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
                 }
             }
         }
-        
-        // Bottom controls - Sort and Filter buttons
+        }
+
+        // Bottom controls overlay as Popup so it draws above all content
+        val bottomInsetPx = with(LocalDensity.current) { padding.calculateBottomPadding().roundToPx() }
+        // Enclosing light rectangle container; not a dark/black box
+        Popup(
+            alignment = Alignment.BottomCenter,
+            offset = IntOffset(0, -bottomInsetPx),
+            properties = PopupProperties(focusable = false, clippingEnabled = false)
+        ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            tonalElevation = 3.dp,
+            shadowElevation = 2.dp
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .height(controlsBarHeight),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Sort button
-            Button(
-                onClick = { 
-                    tempSortOrder = sortOrder // Initialize temp with current value
-                    showSortDialog = true 
+            val isSortActive = sortOrder != "Newest First"
+            OutlinedButton(
+                onClick = {
+                    tempSortOrder = sortOrder
+                    showSortDialog = true
                 },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (sortOrder != "Newest First") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (sortOrder != "Newest First") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                shape = RoundedCornerShape(0.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isSortActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                    contentColor = if (isSortActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 ),
-                border = if (sortOrder != "Newest First") null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                border = BorderStroke(1.dp, if (isSortActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.sort_by),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Sort,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.sort_by),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSortActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
-            
-            // Filter button
-            Button(
-                onClick = { 
-                    tempSelectedViolationType = selectedViolationType // Initialize temp with current value
-                    showFilterDialog = true 
+            val isFilterActive = (selectedViolationType != null) || selectedViolationTypes.isNotEmpty()
+            OutlinedButton(
+                onClick = {
+                    tempSelectedViolationType = selectedViolationType
+                    showFilterDialog = true
                 },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (selectedViolationType != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (selectedViolationType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                shape = RoundedCornerShape(0.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isFilterActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                    contentColor = if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 ),
-                border = if (selectedViolationType != null) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                border = BorderStroke(1.dp, if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.filter_by),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.filter_by),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
+        }
+        }
+
+        // Pull to refresh indicator at top center
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            PullRefreshIndicator(
+                refreshing = uiState.isLoading,
+                state = pullRefreshState
+            )
+        }
     }
-    
-    // Pull to refresh indicator
-    PullRefreshIndicator(
-        refreshing = uiState.isLoading,
-        state = pullRefreshState,
-        modifier = Modifier.align(Alignment.TopCenter)
-    )
 }
     
     // Filter dialog
@@ -782,49 +894,150 @@ fun ReportsTab(padding: PaddingValues, navController: NavController, initialFilt
 
 @Composable
 fun NotificationsTab(padding: PaddingValues) {
-    LazyColumn(
+    val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(true) }
+    var notifications by remember { mutableStateOf<List<NotificationItem>>(emptyList()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        runCatching {
+            val res = OtpNetworkBridge.listNotifications()
+            if (res.success) {
+                notifications = res.data?.notifications ?: emptyList()
+            } else {
+                error = res.message ?: res.error ?: "Failed to load"
+            }
+        }.onFailure { throwable ->
+            error = throwable.message
+        }
+        isLoading = false
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(padding)
             .padding(16.dp)
     ) {
-        item {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = stringResource(R.string.notifications),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 24.dp)
+                fontWeight = FontWeight.Bold
             )
+            if (notifications.isNotEmpty()) {
+                TextButton(onClick = {
+                    isLoading = true
+                    error = null
+                    scope.launch {
+                        runCatching { OtpNetworkBridge.markAllNotificationsRead() }
+                            .onSuccess { res ->
+                                if (res.success) notifications = emptyList() else error = res.message ?: res.error
+                            }
+                            .onFailure { error = it.message }
+                        isLoading = false
+                    }
+                }) {
+                    Text(text = stringResource(R.string.clear_all))
+                }
+            }
         }
-        
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        when {
+            isLoading -> {
+                CircularProgressIndicator()
+            }
+            !error.isNullOrBlank() -> {
+                Text(text = error ?: "", color = MaterialTheme.colorScheme.error)
+            }
+            notifications.isEmpty() -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 ) {
-                    Text(
-                        text = stringResource(R.string.no_notifications),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.no_reports_found),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no_notifications),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.no_reports_found),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(notifications, key = { it.id }) { item ->
+                        NotificationListItem(
+                            item = item,
+                            onDelete = {
+                                scope.launch {
+                                    runCatching { OtpNetworkBridge.markNotificationRead(item.id) }
+                                        .onSuccess { res ->
+                                            if (res.success) notifications = notifications.filterNot { it.id == item.id } else error = res.message ?: res.error
+                                        }
+                                        .onFailure { error = it.message }
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun NotificationListItem(
+    item: NotificationItem,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = item.title ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = item.message ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = formatReportRelativeIst(item.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(id = R.string.delete))
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ProfileTab(padding: PaddingValues, navController: NavController) {
@@ -835,6 +1048,7 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
     // Initialize ViewModel with context
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
+        viewModel.loadUserSettings()
     }
     
     // Language confirmation dialog
@@ -860,17 +1074,14 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(padding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(bottom = 32.dp)
     ) {
         // Profile Header
         item {
-            val settingsVm = remember { com.example.reportviolation.ui.screens.settings.SettingsViewModel() }
-            val settings by settingsVm.uiState.collectAsState()
-            LaunchedEffect(Unit) { settingsVm.loadUserSettings() }
             ProfileHeader(
-                userName = settings.userName,
+                userName = uiState.userName,
                 onProfileClick = { /* Navigate to profile edit */ }
             )
         }
@@ -903,7 +1114,8 @@ fun ProfileTab(padding: PaddingValues, navController: NavController) {
         // Reward Points Section
         item {
             RewardPointsSection(
-                points = uiState.rewardPoints
+                points = uiState.rewardPoints,
+                onTransactionsClick = { navController.navigate(com.example.reportviolation.ui.navigation.Screen.RewardTransactions.route) }
             )
         }
 
@@ -1191,12 +1403,13 @@ fun AccessibilityItem(
 
 @Composable
 fun RewardPointsSection(
-    points: String
+    points: String,
+    onTransactionsClick: () -> Unit
 ) {
     Column {
         // Section Title
         Text(
-            text = stringResource(R.string.settings_reward_points),
+            text = "Reward",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
@@ -1208,18 +1421,46 @@ fun RewardPointsSection(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = points,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkBlue
-                )
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Reward Balance",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = points,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBlue
+                    )
+                }
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onTransactionsClick() }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Reward Transactions",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = DarkBlue
+                    )
+                }
             }
         }
     }
@@ -1346,7 +1587,10 @@ fun ReportCardNew(report: CitizenReportItem, navController: NavController, sourc
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("${Screen.ReportDetails.route}/${report.id}?sourceTab=$sourceTab")
+                // Capture current Reports state if available
+                val backEntry = navController.currentBackStackEntry
+                // Navigate preserving context; adding query keeps route simple while state lives in back stack
+                navController.navigate("${Screen.ReportDetails.route}/${report.id}?sourceTab=${sourceTab}")
             },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

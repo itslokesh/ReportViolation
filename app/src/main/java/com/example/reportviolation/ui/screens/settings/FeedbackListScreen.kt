@@ -63,23 +63,27 @@ fun FeedbackListScreen(navController: NavController) {
 
     BackHandler { navigateToProfileTab() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Your Feedbacks") },
-                navigationIcon = {
-                    IconButton(onClick = { navigateToProfileTab() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navigateToProfileTab() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+            Spacer(Modifier.width(8.dp))
+            Text("Your Feedbacks", style = MaterialTheme.typography.titleLarge)
         }
-    ) { innerPadding ->
+        Spacer(Modifier.height(12.dp))
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
         ) {
             when {
                 isLoading -> {

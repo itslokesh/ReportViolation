@@ -149,7 +149,11 @@
     <string name="filter_all">All</string>
     <string name="filter_submitted">Submitted</string>
     <string name="filter_in_progress">In Progress</string>
+    <string name="filter_under_review">Under Review</string>
     <string name="filter_resolved">Resolved</string>
+    <string name="filter_approved">Approved</string>
+    <string name="filter_rejected">Rejected</string>
+    <string name="to_be_reviewed">To be reviewed</string>
     <string name="sort_newest_first">Newest First</string>
     <string name="sort_oldest_first">Oldest First</string>
     <string name="error_loading_reports">Error loading reports</string>
@@ -216,6 +220,11 @@
     <string name="status_received">Received</string>
     <string name="status_submitted_timeline">Submitted</string>
     <string name="status_in_review">In Review</string>
+    <string name="review_notes">Review Notes</string>
+    <string name="status_points_rewarded">Points Rewarded</string>
+    <string name="status_report_approved">Report approved</string>
+    <string name="approved_violations">Approved violations</string>
+    <string name="approved_violation_types">Approved Violation Types</string>
     <string name="status_resolved_timeline">Resolved</string>
     <string name="status_pending">Pending</string>
     

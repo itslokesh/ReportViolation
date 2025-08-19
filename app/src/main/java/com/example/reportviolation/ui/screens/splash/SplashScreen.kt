@@ -25,6 +25,10 @@ import com.example.reportviolation.data.remote.auth.TokenStore
 import com.example.reportviolation.data.remote.auth.SessionPrefs
 import com.example.reportviolation.data.remote.ApiClient
 import com.example.reportviolation.data.remote.AuthApi
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.os.Build
+import com.example.reportviolation.ui.util.rememberPermissionLauncher
 
 @Composable
 fun SplashScreen(navController: NavController) {
@@ -35,10 +39,20 @@ fun SplashScreen(navController: NavController) {
     )
 
     val context = LocalContext.current
+    val notifPermissionLauncher = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberPermissionLauncher(Manifest.permission.POST_NOTIFICATIONS) { }
+    } else null
 
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(2500L)
+        // Request notification permission on T+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = com.example.reportviolation.ui.util.PermissionUtil.isPermissionGranted(context, Manifest.permission.POST_NOTIFICATIONS)
+            if (!granted) {
+                runCatching { notifPermissionLauncher?.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            }
+        }
         // Initialize token prefs and check session age
         runCatching { TokenPrefs.init(context) }
         val access = TokenStore.accessToken

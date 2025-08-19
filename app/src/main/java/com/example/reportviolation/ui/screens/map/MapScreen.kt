@@ -96,33 +96,10 @@ fun MapScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Select Location") },
+                title = { Text("Map") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    if (hasLocationPermission) {
-                        IconButton(
-                            onClick = {
-                                currentLocation?.let { location ->
-                                    mapView?.getMapAsync { googleMap ->
-                                        googleMap.moveCamera(
-                                            CameraUpdateFactory.newLatLngZoom(location, 15f)
-                                        )
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MyLocation,
-                                contentDescription = "My Location"
-                            )
-                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )

@@ -18,5 +18,10 @@ class ReportViolationApp : Application() {
         try {
             com.example.reportviolation.data.remote.CacheManager.schedulePeriodicCleanup(this)
         } catch (_: Throwable) { }
+
+        // Create notification channel
+        try {
+            com.example.reportviolation.utils.push.PushNotifications.ensureChannel(this)
+        } catch (_: Throwable) { }
     }
 } 

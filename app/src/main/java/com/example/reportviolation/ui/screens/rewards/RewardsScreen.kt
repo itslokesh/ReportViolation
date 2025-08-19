@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.reportviolation.ui.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,11 +46,9 @@ fun RewardsScreen(navController: NavController) {
             
             Spacer(modifier = Modifier.height(48.dp))
             
-            Text(
-                text = "Rewards system coming soon...",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
+            Button(onClick = { navController.navigate(Screen.RewardTransactions.route) }) {
+                Text("View Transactions")
+            }
         }
     }
 } 
