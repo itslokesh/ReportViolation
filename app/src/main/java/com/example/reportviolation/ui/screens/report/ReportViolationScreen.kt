@@ -89,6 +89,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
 
 // Custom MapView that restricts one-finger dragging
 class RestrictedMapView(context: android.content.Context) : MapView(context) {
@@ -148,6 +150,7 @@ fun ReportViolationScreen(navController: NavController) {
     var locationAddress by remember { mutableStateOf<String?>(null) }
     var vehicleNumber by remember { mutableStateOf("") }
     var descriptionText by remember { mutableStateOf("") }
+    var currentStep by remember { mutableStateOf(0) } // 0: Media, 1: Details, 2: Location
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -266,145 +269,81 @@ fun ReportViolationScreen(navController: NavController) {
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Automatic Location Detection (Clean and transparent)
-            if (!hasLocationPermission) {
-                LocationPermissionRequest(
-                    onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-            }
+            // Step indicator
+            StepIndicator(currentStep = currentStep)
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Media Capture Section (Only show if location permission granted)
-            if (hasLocationPermission) {
-                                // Location indicator with refresh button
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+            when (currentStep) {
+                0 -> {
+                    // Step 1: Media
+                    Text(
+                        text = stringResource(R.string.capture_evidence),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBlue
                     )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = DarkBlue
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = if (currentLocation != null) stringResource(R.string.location_detected) else stringResource(R.string.getting_location),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkBlue
-                                )
-                                if (locationAddress != null) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    // Split address by commas and display in multiple lines
-                                    val addressParts = locationAddress!!.split(",").map { it.trim() }
-                                    addressParts.forEachIndexed { _, part ->
-                                        if (part.isNotBlank()) {
-                                            Text(
-                                                text = part,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Refresh location button
-                        IconButton(
-                            onClick = { 
-                                isLocationLoading = true
-                                getCurrentLocation(context) { location ->
-                                    currentLocation = location
-                                    if (location != null) {
-                                        getAddressFromLocation(
-                                            context, 
-                                            location, 
-                                            { address -> locationAddress = address },
-                                            unknownArea,
-                                            unknownCity
-                                        )
-                                    }
-                                    isLocationLoading = false
-                                }
-                            },
-                            enabled = !isLocationLoading
-                        ) {
-                            if (isLocationLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                    color = DarkBlue
-                                )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.capture_evidence_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    MediaCaptureSection(
+                        selectedMediaUri = selectedMediaUri,
+                        onPhotoClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                navController.navigate("${Screen.Camera.route}?mode=PHOTO")
                             } else {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = stringResource(R.string.refresh_location),
-                                    tint = DarkBlue,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                        onVideoClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                navController.navigate("${Screen.Camera.route}?mode=VIDEO")
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         }
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                MediaCaptureSection(
-                    selectedMediaUri = selectedMediaUri,
-                    onPhotoClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            android.util.Log.d("ReportViolationScreen", "Navigating to camera screen with PHOTO mode")
-                            navController.navigate("${Screen.Camera.route}?mode=PHOTO")
-                        } else {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    },
-                    onVideoClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            android.util.Log.d("ReportViolationScreen", "Navigating to camera screen with VIDEO mode")
-                            navController.navigate("${Screen.Camera.route}?mode=VIDEO")
-                        } else {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Media Preview Section
-                if (selectedMediaUri != null) {
-                    MediaPreviewSection(
-                        mediaUri = selectedMediaUri!!,
-                        onRemove = { selectedMediaUri = null }
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+                    if (selectedMediaUri != null) {
+                        MediaPreviewSection(mediaUri = selectedMediaUri!!, onRemove = { selectedMediaUri = null })
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
 
-                    // Violation Type Selection
+                    StepFooterButtons(
+                        leftText = stringResource(R.string.cancel),
+                        rightText = stringResource(R.string.next),
+                        onLeft = { navController.navigateUp() },
+                        onRight = { currentStep = 1 },
+                        rightEnabled = selectedMediaUri != null
+                    )
+                }
+                1 -> {
+                    // Step 2: Details
+                    Text(
+                        text = stringResource(R.string.step_details),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBlue
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.details_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     ViolationTypeSection(
                         selectedTypes = selectedViolationTypes,
                         onTypeSelected = { selectedViolationTypes = it },
                         onShowDialog = { showViolationTypeDialog = true }
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Vehicle and Description inputs
+                    Spacer(modifier = Modifier.height(16.dp))
                     VehicleAndDescriptionSection(
                         vehicleNumber = vehicleNumber,
                         onVehicleNumberChange = { vehicleNumber = it },
@@ -412,78 +351,67 @@ fun ReportViolationScreen(navController: NavController) {
                         onDescriptionChange = { descriptionText = it }
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Location Map Section (Below violation types)
-                    if (currentLocation != null) {
-                        LocationMapSection(
-                            location = currentLocation!!,
-                            address = locationAddress,
-                            onLocationChanged = { newLocation ->
-                                currentLocation = newLocation
-                            },
-                            onAddressChanged = { newAddress ->
-                                locationAddress = newAddress
-                            },
-                            onFullMapRequest = {
-                                try {
-                                    println("Full screen button clicked!")
-                                    Toast.makeText(context, "Opening full screen map...", Toast.LENGTH_SHORT).show()
-                                    println("Current location: ${currentLocation?.latitude}, ${currentLocation?.longitude}")
-                                    
-                                    val intent = Intent(context, MapsActivity::class.java).apply {
-                                        putExtra("latitude", currentLocation!!.latitude)
-                                        putExtra("longitude", currentLocation!!.longitude)
-                                        putExtra("address", locationAddress)
-                                    }
-                                    println("Intent created: $intent")
-                                    println("Intent extras: ${intent.extras}")
-                                    fullMapLauncher.launch(intent)
-                                    println("Activity launcher called")
-                                } catch (e: Exception) {
-                                    println("Error launching full screen map: ${e.message}")
-                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    e.printStackTrace()
-                                }
-                            },
-                            unknownArea = unknownArea,
-                            unknownCity = unknownCity
+                    Spacer(modifier = Modifier.height(24.dp))
+                    StepFooterButtons(
+                        leftText = stringResource(id = R.string.back),
+                        rightText = stringResource(R.string.next),
+                        onLeft = { currentStep = 0 },
+                        onRight = { currentStep = 2 },
+                        rightEnabled = selectedViolationTypes.isNotEmpty()
+                    )
+                }
+                2 -> {
+                    // Step 3: Location
+                    Text(
+                        text = stringResource(R.string.step_location),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBlue
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (!hasLocationPermission) {
+                        LocationPermissionRequest(
+                            onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
                         )
-                        
-                        Spacer(modifier = Modifier.height(32.dp))
                     } else {
-                        // Debug info - show when location is not available
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                        if (currentLocation != null) {
+                            LocationMapSection(
+                                location = currentLocation!!,
+                                address = locationAddress,
+                                onLocationChanged = { newLocation -> currentLocation = newLocation },
+                                onAddressChanged = { newAddress -> locationAddress = newAddress },
+                                onFullMapRequest = {
+                                    try {
+                                        val intent = Intent(context, MapsActivity::class.java).apply {
+                                            putExtra("latitude", currentLocation!!.latitude)
+                                            putExtra("longitude", currentLocation!!.longitude)
+                                            putExtra("address", locationAddress)
+                                        }
+                                        fullMapLauncher.launch(intent)
+                                    } catch (_: Exception) {}
+                                },
+                                unknownArea = unknownArea,
+                                unknownCity = unknownCity
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.location_not_available),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Text(
-                                    text = stringResource(R.string.grant_location_permission),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
+                        } else {
+                            // Attempt refresh if location not yet loaded
+                            isLocationLoading = true
+                            getCurrentLocation(context) { location ->
+                                currentLocation = location
+                                if (location != null) {
+                                    getAddressFromLocation(context, location, { address -> locationAddress = address }, unknownArea, unknownCity)
+                                }
+                                isLocationLoading = false
                             }
                         }
-                        Spacer(modifier = Modifier.height(32.dp))
                     }
 
-                                        // Submit Button
-                    val isSubmitEnabled = selectedMediaUri != null && selectedViolationTypes.isNotEmpty() && currentLocation != null
-                    
-                    Button(
-                        onClick = { 
-                            // Submit to backend using required payload shape
+                    Spacer(modifier = Modifier.height(24.dp))
+                    StepFooterButtons(
+                        leftText = stringResource(id = R.string.back),
+                        rightText = stringResource(R.string.submit_report),
+                        onLeft = { currentStep = 1 },
+                        onRight = {
                             coroutineScope.launch {
                                 try {
                                     val parts = resolveAddressParts(context, currentLocation!!, locationAddress)
@@ -516,63 +444,8 @@ fun ReportViolationScreen(navController: NavController) {
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = isSubmitEnabled,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = DarkBlue,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send, 
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            stringResource(R.string.submit_report),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    
-                    // Debug info for submit button
-                    if (!isSubmitEnabled) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.submit_button_requirements),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "• ${stringResource(R.string.evidence)}: ${if (selectedMediaUri != null) "✓" else "✗"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Text(
-                                    text = "• ${stringResource(R.string.violation_types)}: ${if (selectedViolationTypes.isNotEmpty()) "✓" else "✗"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Text(
-                                    text = "• ${stringResource(R.string.location)}: ${if (currentLocation != null) "✓" else "✗"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-                    }
+                        rightEnabled = selectedMediaUri != null && selectedViolationTypes.isNotEmpty() && currentLocation != null
+                    )
                 }
             }
         }
@@ -659,15 +532,6 @@ fun MediaCaptureSection(
     onVideoClick: () -> Unit
 ) {
     Column {
-        Text(
-            text = stringResource(R.string.capture_evidence),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = DarkBlue
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -1110,6 +974,90 @@ fun ViolationTypeDialog(
             }
         }
     )
+}
+
+@Composable
+private fun StepIndicator(currentStep: Int) {
+    // Steps: 1 Media, 2 Details, 3 Location
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        StepChip(number = 1, title = stringResource(id = R.string.media_step), active = currentStep == 0)
+        Divider(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            thickness = 3.dp,
+            color = if (currentStep > 0) DarkBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+        )
+        StepChip(number = 2, title = stringResource(id = R.string.details_step), active = currentStep == 1)
+        Divider(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            thickness = 3.dp,
+            color = if (currentStep > 1) DarkBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+        )
+        StepChip(number = 3, title = stringResource(id = R.string.location_step), active = currentStep == 2)
+    }
+}
+
+@Composable
+private fun StepChip(number: Int, title: String, active: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            shape = CircleShape,
+            color = if (active) DarkBlue else MaterialTheme.colorScheme.surface,
+            tonalElevation = if (active) 2.dp else 0.dp,
+            shadowElevation = if (active) 2.dp else 0.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        ) {
+            Box(
+                modifier = Modifier.size(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number.toString(),
+                    color = if (active) MaterialTheme.colorScheme.onPrimary else DarkBlue,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun StepFooterButtons(
+    leftText: String,
+    rightText: String,
+    onLeft: () -> Unit,
+    onRight: () -> Unit,
+    rightEnabled: Boolean = true,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        OutlinedButton(
+            onClick = onLeft,
+            modifier = Modifier.weight(1f)
+        ) { Text(leftText) }
+        Button(
+            onClick = onRight,
+            enabled = rightEnabled,
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkBlue, contentColor = MaterialTheme.colorScheme.onPrimary)
+        ) { Text(rightText) }
+    }
 }
 
 @Composable

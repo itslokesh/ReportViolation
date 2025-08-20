@@ -251,6 +251,13 @@
     <string name="fixed_location_marker">Fixed Location Marker</string>
     <string name="unknown_area">Unknown Area</string>
     <string name="unknown_city">Unknown City</string>
+    <string name="media_step">Media</string>
+    <string name="details_step">Details</string>
+    <string name="location_step">Location</string>
+    <string name="step_details">Details</string>
+    <string name="step_location">Location</string>
+    <string name="capture_evidence_description">Take a photo or record a video of the violation to include with your report.</string>
+    <string name="details_description">Select violation types and optionally enter vehicle number and a short description.</string>
     <string name="submit_button_requirements">Submit Button Requirements:</string>
     <string name="red_pin_fixed_center">💡 The red pin stays fixed in the center.</string>
     <string name="use_two_fingers_set_location">Use two fingers to move the map and set the exact violation location (pin stays centered)</string>

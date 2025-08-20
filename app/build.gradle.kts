@@ -88,6 +88,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material:1.6.1")
+    // Compose Google Fonts
+    implementation("androidx.compose.ui:ui-text-google-fonts")
     
     // Room Database
     implementation(libs.androidx.room.runtime)
