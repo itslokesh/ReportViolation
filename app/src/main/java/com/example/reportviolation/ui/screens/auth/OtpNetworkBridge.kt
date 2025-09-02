@@ -62,13 +62,13 @@ object OtpNetworkBridge {
     suspend fun uploadPhoto(context: Context, uri: android.net.Uri): String? {
         val part = uriToPart(context, uri, "photo")
         val res = uploadApi.uploadPhoto(part)
-        return res.data?.url?.let { ensureAbsolute("http://192.168.29.250:3000", it) }
+        return res.data?.url?.let { ensureAbsolute("http://10.183.153.49:3000", it) }
     }
 
     suspend fun uploadVideo(context: Context, uri: android.net.Uri): String? {
         val part = uriToPart(context, uri, "video")
         val res = uploadApi.uploadVideo(part)
-        return res.data?.url?.let { ensureAbsolute("http://192.168.29.250:3000", it) }
+        return res.data?.url?.let { ensureAbsolute("http://10.183.153.49:3000", it) }
     }
 
     suspend fun submitReport(body: ReportCreateBody): Boolean {

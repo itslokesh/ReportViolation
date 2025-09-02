@@ -64,11 +64,11 @@ android {
     productFlavors {
         create("lan") {
             dimension = "env"
-            buildConfigField("String", "BASE_URL", "\"http://192.168.29.250:3000\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.183.153.49:3000\"")
         }
         create("emulator") {
             dimension = "env"
-            buildConfigField("String", "BASE_URL", "\"http://192.168.29.250:3000\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.183.153.49:3000\"")
         }
     }
 }
