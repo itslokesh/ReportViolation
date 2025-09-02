@@ -299,10 +299,6 @@ app/src/main/java/com/example/reportviolation/
 - **Enterprise Sales**: enterprise@trafficviolationapp.com
 - **Media Relations**: press@trafficviolationapp.com
 
-### Community
-- **Discord Server**: [Join our community](https://discord.gg/trafficviolation)
-- **LinkedIn**: [Follow our updates](https://linkedin.com/company/trafficviolationapp)
-- **Twitter**: [@TrafficViolApp](https://twitter.com/TrafficViolApp)
 
 ## 📄 License & Legal
 
